@@ -1,0 +1,107 @@
+###########################################################
+#                     Deadpool  Project                   #
+###########################################################
+#
+# Deadpool Release Version
+version: 1.0.0
+#
+# Base running connection Common Settings
+connection:
+  redis:
+    host: "127.0.0.1" # By default localhost
+    port: 6379 # By default 6379
+    timeout: 60 # By default 10s
+  database:
+    host: "127.0.0.1" # By default localhost
+    port: 3306 # By default 3306
+    database: ["ATDKnowledge", "website"]
+    username: "root"
+    password: "12345678*"
+    timeout: 60 # By default 10s
+  elasticsearch:
+    host: ["127.0.0.1:9200"] # By default localhost
+    timeout: 60 # By default 10s
+
+
+# Base Tasks Router Settings
+# Task name
+router:
+    task_default:
+        class: "TaskDefault"
+        module: "periodic"
+        options:
+          database: "ATDKnowledge"
+          source: "elasticsearch"
+          seek: "host-threat"
+          sink: "host-alarm"
+          classtype_id: []
+    task_apt:
+        class: "TaskAPT"
+        module: "periodic"
+        options:
+          database: "ATDKnowledge"
+          source: "elasticsearch"
+          seek: "host-threat"
+          sink: "host-alarm"
+          classtype_id: [100]
+    task_attack_exploit:
+        class: "TaskAttackExploit"
+        module: "periodic"
+        options:
+          database: "ATDKnowledge"
+          source: "elasticsearch"
+          seek: "host-threat"
+          sink: "host-alarm"
+          classtype_id: [102]
+    task_ddos:
+      class: "TaskDDos"
+      module: "periodic"
+      options:
+        database: "ATDKnowledge"
+        source: "elasticsearch"
+        seek: "host-threat"
+        sink: "host-alarm"
+        classtype_id: [103]
+    task_detection:
+      class: "TaskDetection"
+      module: "periodic"
+      options:
+        database: "ATDKnowledge"
+        source: "elasticsearch"
+        seek: "host-threat"
+        sink: "host-alarm"
+        classtype_id: [104]
+    task_malware:
+      class: "TaskMalware"
+      module: "periodic"
+      options:
+        database: "ATDKnowledge"
+        source: "elasticsearch"
+        seek: "host-threat"
+        sink: "host-alarm"
+        classtype_id: [101]
+    task_suspicious_activity:
+      class: "TaskSuspiciousActivity"
+      module: "periodic"
+      options:
+        database: "ATDKnowledge"
+        source: "elasticsearch"
+        seek: "host-threat"
+        sink: "host-alarm"
+        classtype_id: [105]
+    task_vuln_weakness:
+      class: "TaskVulnWeakness"
+      module: "periodic"
+      options:
+        database: "ATDKnowledge"
+        source: "elasticsearch"
+        seek: "host-threat"
+        sink: "host-alarm"
+        classtype_id: [106]
+    task_risk_host:
+      class: "TaskRiskHost"
+      module: "periodic"
+      options:
+        source: "elasticsearch"
+        seek: "host-alarm"
+        sink: "host-risk"

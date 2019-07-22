@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+set -x
+
+source /etc/profile
+
+chown -R celery:celery /home/soft/Deadpool
+mkdir -p /data1/logs/deadpool
+chown -R celery:celery /data1/logs/deadpool
+systemctl daemon-reload
+systemctl enable deadpool
+systemctl start deadpool
+
+set +x

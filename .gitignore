@@ -1,0 +1,13 @@
+# Created by .ignore support plugin (hsz.mobi)
+
+# Ignore Directory
+.idea/
+venv/
+__pycache__/
+
+# Ignore File
+celerybeat-schedule
+*~
+.DS_Store
+*.pyc
+celerybeat-schedule.db

@@ -1,0 +1,31 @@
+stages:
+  - build
+  - deploy
+
+develop:
+  stage: build
+  only:
+    - develop@ATD/Deadpool
+  script:
+    - /bin/bash build.sh
+    - replaceDash=`basename ${CI_BUILD_REF_NAME}`
+    - scp dest/deadpool-`echo ${replaceDash//-/_}`-`git rev-list HEAD | wc -l`.noarch.rpm root@repo:/data1/libpub/develop/RPMS/ATD/
+    - ssh root@repo createrepo --quiet --update /var/www/html/develop/
+
+pre_release:
+  stage: build
+  only:
+    - /^release\/.*$/@ATD/Deadpool
+  script:
+    - /bin/bash build.sh
+    - scp dest/deadpool-`basename ${CI_BUILD_REF_NAME}`-`git rev-list HEAD | wc -l`.noarch.rpm root@repo:/data1/libpub/pre_release/RPMS/ATD/
+    - ssh root@repo createrepo --quiet --update /var/www/html/pre_release/
+
+release:
+  stage: build
+  only:
+    - tags@ATD/Deadpool
+  script:
+    - /bin/bash build.sh
+    - scp dest/deadpool-`basename ${CI_BUILD_REF_NAME}`-`git rev-list HEAD | wc -l`.noarch.rpm root@repo:/data1/libpub/yum/RPMS/ATD/
+    - ssh root@repo createrepo --quiet --update /var/www/html/yum/
