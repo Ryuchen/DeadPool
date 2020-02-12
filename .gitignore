@@ -5,9 +5,13 @@
 venv/
 __pycache__/
 
+bin/
+
 # Ignore File
 celerybeat-schedule
 *~
 .DS_Store
 *.pyc
 celerybeat-schedule.db
+
+logs/

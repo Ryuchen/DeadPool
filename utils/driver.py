@@ -12,6 +12,8 @@ import os
 import zipfile
 import platform
 
+_current_dir = os.path.abspath(os.path.dirname(__file__))
+
 
 def loader_driver():
     os_ = platform.system()
@@ -25,11 +27,11 @@ def loader_driver():
         unpack_driver = "chromedriver_win32.zip"
         driver_name = "chromedriver.exe"
 
-    driver_path = os.path.join("..", "driver", unpack_driver)
+    driver_path = os.path.join(_current_dir, "..", "driver", unpack_driver)
 
     # Create a ZipFile Object and load sample.zip in it
     with zipfile.ZipFile(driver_path, 'r') as zipObj:
         # Extract all the contents of zip file in different directory
-        zipObj.extractall(os.path.join("..", "bin"))
+        zipObj.extractall(os.path.join(_current_dir, "..", "bin"))
 
-    return os.path.abspath(os.path.join("..", "bin", driver_name))
+    return os.path.abspath(os.path.join(_current_dir, "..", "bin", driver_name))
