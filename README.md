@@ -63,7 +63,7 @@ Nameplace ( 虚位以待 )
 
 ### 🤝 贡献源码:
 
-Contributions, issues and feature requests are welcome!<br />Feel free to check [issues page](https://github.com/Ryuchen/Deadpool/issues).
+Contributions, issues and feature requests are welcome!<br />Feel free to check [issues page](https://github.com/Ryuchen/DeadPool/tree/master/common/plugins).
 
 ### ⭐ 渴望支持: 
 
@@ -72,7 +72,7 @@ Contributions, issues and feature requests are welcome!<br />Feel free to check 
 
 | **微信**                         | **支付宝**                           |
 | ------------------------------- | ----------------------------------- |
-|<p align="center">![扫码赞助](https://github.com/Ryuchen/Panda-Sandbox/raw/master/sponsor/wechat.jpg)</p>|<p align="center">![扫码赞助](https://github.com/Ryuchen/Panda-Sandbox/raw/master/sponsor/alipay.jpg)</p>|
+|<p align="center">![扫码赞助](https://raw.githubusercontent.com/Ryuchen/Panda-Sandbox/master/docs/sponsor/wechat.jpg)</p>|<p align="center">![扫码赞助](https://raw.githubusercontent.com/Ryuchen/Panda-Sandbox/master/docs/sponsor/alipay.jpg)</p>|
 
 ### 📝 开源协议:
 
