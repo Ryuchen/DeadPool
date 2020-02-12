@@ -7,11 +7,8 @@
 # @File : base.py 
 # @Desc : 
 # ==================================================
-from __future__ import print_function
-from __future__ import absolute_import
 
 from celery.task import PeriodicTask
-from contrib.elastic.base import ElasticBase
 
 
 class BaseTask(PeriodicTask):
@@ -19,18 +16,25 @@ class BaseTask(PeriodicTask):
     abstract = True  # This configuration to tell celery this is not the task.
 
     _db_session = None
+    _rc_session = None
     _es_session = None
+
+    @property
+    def rc_session(self):
+        if self._rc_session is None:
+            self._rc_session = self.app._session_pool.get("redis")
+        return self._rc_session
 
     @property
     def db_session(self):
         if self._db_session is None:
-            self._db_session = self.app.databases_session_pool.get(self.options.get("database"))
+            self._db_session = self.app._session_pool.get("mysql")
         return self._db_session
 
     @property
     def es_session(self):
         if self._es_session is None:
-            self._es_session = ElasticBase()
+            self._es_session = self.app._session_pool.get("elastic")
         return self._es_session
 
     def run(self, *args, **kwargs):

@@ -7,8 +7,6 @@
 # @File : settings.py 
 # @Desc : 
 # ==================================================
-from __future__ import print_function
-from __future__ import absolute_import
 import os
 import sys
 import logging
@@ -21,26 +19,31 @@ from celery.signals import task_success
 from celery.signals import task_failure
 
 from common.settings import Settings
+from contrib.redis.base import RedisBase
 from contrib.mysql.base import MysqlBase
-from contrib.elastic.indices.host_aggtask import AggTaskLog
+from contrib.elastic.base import ElasticBase
 
 log = logging.getLogger(__name__)
 
 # Once, as part of application setup, during deploy/migrations:
 # We need to setup the global default settings
-setting = Settings()
-setting.loading_settings()
-settings = setting.get_settings()
+Settings.loading_config()
 
 # Initialise the celery redis connection
-redis_host = settings.get("connection", {}).get("redis", {}).get("host", "localhost")
-redis_port = settings.get("connection", {}).get("redis", {}).get("port", 6379)
+redis_host = Settings.search_config("connection|redis|host", "localhost")
+redis_port = Settings.search_config("connection|redis|port", 6379)
 
-app = Celery(
-    main='deadpool',
-    broker='redis://{0}:{1}/3'.format(redis_host, redis_port),
-    backend='redis://{0}:{1}/4'.format(redis_host, redis_port)
-)
+redis_usr = Settings.search_config("connection|redis|username", "username")
+redis_pwd = Settings.search_config("connection|redis|password", "password")
+
+if { redis_usr, redis_pwd } == { "username", "password" }:
+    broker = 'redis://{0}:{1}/3'.format(redis_host, redis_port)
+    backend = 'redis://{0}:{1}/4'.format(redis_host, redis_port)
+else:
+    broker = 'redis://{0}:{1}@{2}:{3}/3'.format(redis_usr, redis_pwd, redis_host, redis_port)
+    backend = 'redis://{0}:{1}@{2}:{3}/4'.format(redis_usr, redis_pwd, redis_host, redis_port)
+
+app = Celery(main='deadpool', broker=broker, backend=backend)
 
 # Optional configuration, see the application user guide.
 # See more: https://docs.celeryproject.org/en/latest/userguide/configuration.html
@@ -59,17 +62,13 @@ app.conf.update(
 @app.on_configure.connect
 def setup_initialise(sender, **kwargs):
     try:
-        # Initialise database connection
-        databases_session_pool = {}
-        for _ in settings.get("connection").get("database").get("database"):
-            dsn = "mysql+mysqlconnector://{0}:{1}@{2}:{3}/{4}?charset=utf8"
-            username = settings.get("connection").get("database").get("username")
-            password = settings.get("connection").get("database").get("password")
-            host = settings.get("connection").get("database").get("host")
-            port = settings.get("connection").get("database").get("port")
-            db = MysqlBase(dsn.format(username, password, host, port, _))
-            databases_session_pool.update({_: db.Session})
-        setattr(sender, "databases_session_pool", databases_session_pool)
+        # Initialise share session connection
+        _session_pool = {
+            "redis": RedisBase().Session,
+            "mysql": MysqlBase().Session,
+            "elastic": ElasticBase().Session
+        }
+        setattr(sender, "_session_pool", _session_pool)
         log.debug("successes celery app on configure")
     except Exception as e:
         log.error(e)
@@ -79,7 +78,7 @@ def setup_initialise(sender, **kwargs):
 @app.on_after_configure.connect
 def setup_celery_tasks(sender, **kwargs):
     sys.path.append(os.getcwd())
-    for task_name, task_option in settings.get("router", {}).items():
+    for task_name, task_option in Settings.jobs_config.get("jobs", {}).items():
         module_path = 'apps.{0}.tasks.{1}'.format(task_option.get("module"), task_name)
         try:
             ip_module = importlib.import_module(module_path)
@@ -104,20 +103,8 @@ def search_agg_task_log(signal, sender, *args, **kwargs):
 
 @task_success.connect
 def insert_agg_task_log(signal, sender, result, *args, **kwargs):
-    if result:
-        index = '{0}-{1}'.format(
-            AggTaskLog.Index.name,
-            datetime.datetime.now().strftime("%Y-%m-%d"),
-        )
-        for _ in result:
-            agg_task_log = AggTaskLog(
-                task_name=sender.name,
-                rule_name=_.get("rule_name"),
-                start_time=_.get("start_time"),
-                end_time=_.get("end_time"),
-                risk_host_cnt=_.get("risk_host_cnt")
-            )
-            agg_task_log.save(index=index)
+    # Get last running time
+    log.info("signals received: %s" % sender.name)
 
 
 @task_failure.connect

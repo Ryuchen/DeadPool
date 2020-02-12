@@ -1,0 +1,7 @@
+module: "periodic"
+options:
+  pool:
+    - "https://www.xicidaili.com/"
+  maximum: 60
+  minimum: 10
+  crontab: "5"

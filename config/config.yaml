@@ -1,107 +1,46 @@
 ###########################################################
-#                     Deadpool  Project                   #
+#                     DeadPool  Project
+# DeadPool is a project that build base on the celery framework
+# can support crawl multiple website on distribute machines.
 ###########################################################
 #
-# Deadpool Release Version
+# DeadPool Release Version
 version: 1.0.0
 #
-# Base running connection Common Settings
+# Base running connection Settings
 connection:
   redis:
-    host: "127.0.0.1" # By default localhost
-    port: 6379 # By default 6379
-    timeout: 60 # By default 10s
-  database:
-    host: "127.0.0.1" # By default localhost
-    port: 3306 # By default 3306
-    database: ["ATDKnowledge", "website"]
-    username: "root"
-    password: "12345678*"
-    timeout: 60 # By default 10s
+    host: "127.0.0.1"
+    port: 6379
+    database: 0
+    username: "username"
+    password: "password"
+  mysql:
+    host: "127.0.0.1"
+    port: 3306
+    database: "deadpool"
+    username: "username"
+    password: "password"
+    timeout: 60
   elasticsearch:
-    host: ["127.0.0.1:9200"] # By default localhost
-    timeout: 60 # By default 10s
+    host: "127.0.0.1"
+    port: 9200
+    index: "rlogs"
+    username: "username"
+    password: "password"
 
-
-# Base Tasks Router Settings
-# Task name
-router:
-    task_default:
-        class: "TaskDefault"
-        module: "periodic"
-        options:
-          database: "ATDKnowledge"
-          source: "elasticsearch"
-          seek: "host-threat"
-          sink: "host-alarm"
-          classtype_id: []
-    task_apt:
-        class: "TaskAPT"
-        module: "periodic"
-        options:
-          database: "ATDKnowledge"
-          source: "elasticsearch"
-          seek: "host-threat"
-          sink: "host-alarm"
-          classtype_id: [100]
-    task_attack_exploit:
-        class: "TaskAttackExploit"
-        module: "periodic"
-        options:
-          database: "ATDKnowledge"
-          source: "elasticsearch"
-          seek: "host-threat"
-          sink: "host-alarm"
-          classtype_id: [102]
-    task_ddos:
-      class: "TaskDDos"
-      module: "periodic"
-      options:
-        database: "ATDKnowledge"
-        source: "elasticsearch"
-        seek: "host-threat"
-        sink: "host-alarm"
-        classtype_id: [103]
-    task_detection:
-      class: "TaskDetection"
-      module: "periodic"
-      options:
-        database: "ATDKnowledge"
-        source: "elasticsearch"
-        seek: "host-threat"
-        sink: "host-alarm"
-        classtype_id: [104]
-    task_malware:
-      class: "TaskMalware"
-      module: "periodic"
-      options:
-        database: "ATDKnowledge"
-        source: "elasticsearch"
-        seek: "host-threat"
-        sink: "host-alarm"
-        classtype_id: [101]
-    task_suspicious_activity:
-      class: "TaskSuspiciousActivity"
-      module: "periodic"
-      options:
-        database: "ATDKnowledge"
-        source: "elasticsearch"
-        seek: "host-threat"
-        sink: "host-alarm"
-        classtype_id: [105]
-    task_vuln_weakness:
-      class: "TaskVulnWeakness"
-      module: "periodic"
-      options:
-        database: "ATDKnowledge"
-        source: "elasticsearch"
-        seek: "host-threat"
-        sink: "host-alarm"
-        classtype_id: [106]
-    task_risk_host:
-      class: "TaskRiskHost"
-      module: "periodic"
-      options:
-        source: "elasticsearch"
-        seek: "host-alarm"
-        sink: "host-risk"
+#
+# Base Fundamental Settings
+settings:
+  cluster:
+    name: deadpool
+    node:
+      role: master
+      name: node-1
+  #
+  # Storage Pool Settings
+  storage:
+    module:
+      - FileStorage
+      - MongoDB
+      - SQLite

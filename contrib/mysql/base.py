@@ -10,24 +10,31 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
-from common.settings import settings
+from common.settings import Settings
 from common.singleton import singleton
 
 
 @singleton
 class MysqlBase(object):
 
-    def __init__(self, dsn):
-        self._connect_database(dsn)
+    def __init__(self):
+        dsn_string = "mysql+mysqlconnector://{0}:{1}@{2}:{3}/{4}?charset=utf8"
+
+        host = Settings.search_config("connection|mysql|host", "localhost")
+        port = Settings.search_config("connection|mysql|port", 3306)
+
+        username = Settings.search_config("connection|mysql|username", "username")
+        password = Settings.search_config("connection|mysql|password", "password")
+        database = Settings.search_config("connection|mysql|database", "deadpool")
+
+        dsn_string.format(username, password, host, port, database)
+        self._connect_database(dsn_string)
 
         # Disable SQL loggings. Turn it on for debugging.
         self.engine.echo = False
 
         # Connection timeout.
-        if settings.get("connection").get("database").get("timeout"):
-            self.engine.pool_timeout = settings.get("connection").get("database").get("timeout")
-        else:
-            self.engine.pool_timeout = 60
+        self.engine.pool_timeout = Settings.search_config("connection|database|timeout", 60)
 
         # Get db session.
         self.Session = scoped_session(sessionmaker(bind=self.engine))

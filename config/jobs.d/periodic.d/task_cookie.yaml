@@ -1,0 +1,5 @@
+module: "periodic"
+options:
+  expire: 600
+  maximum: 20
+  crontab: "*"

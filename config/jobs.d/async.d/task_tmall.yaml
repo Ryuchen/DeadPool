@@ -1,0 +1,8 @@
+module: "async"
+options:
+  target: "https://www.tmall.com/"
+  proxy: true
+  distribute: false
+  rawlog: false
+  username: 'username'
+  password: 'password'
