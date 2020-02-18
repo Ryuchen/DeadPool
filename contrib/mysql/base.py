@@ -34,7 +34,7 @@ class MysqlBase(object):
         self.engine.echo = False
 
         # Connection timeout.
-        self.engine.pool_timeout = Settings.search_config("connection|database|timeout", 60)
+        self.engine.pool_timeout = Settings.search_config("connection|mysql|timeout", 60)
 
         # Get db session.
         self.Session = scoped_session(sessionmaker(bind=self.engine))

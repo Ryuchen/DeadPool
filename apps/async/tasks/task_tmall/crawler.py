@@ -1,22 +1,20 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # ==================================================
-# @Time : 2020/2/12-11:28
+# @Time : 2020/2/17-16:37
 # @Author : Ryuchen
 # @Site : https://ryuchen.github.io
-# @File : task_proxy.py
+# @File : crawler
 # @Desc : 
 # ==================================================
-from celery.schedules import crontab
+from celery.task import Task
 
+class TmallCrawler(Task):
 
-from apps.periodic.base import BaseTask
+    def __init__(self, target):
+        self.target = target
 
-
-class TaskProxy(BaseTask):
-
-    name = "task_proxy"
-    run_every = crontab(minute="*")
-
+    # 负责爬取每一个页面
     def run(self, *args, **kwargs):
-        pass
+        document = ""
+        return document

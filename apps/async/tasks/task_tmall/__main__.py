@@ -4,7 +4,7 @@
 # @Time : 2020/2/11-13:56
 # @Author : Ryuchen
 # @Site : https://ryuchen.github.io
-# @File : tmall
+# @File : __main__.py
 # @Desc : 
 # ==================================================
 import re
@@ -15,87 +15,72 @@ import random
 import string
 import traceback
 
+from celery import chain
+
 from pyquery import PyQuery as pq
-from selenium.webdriver import ActionChains
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
-from apps.async.base import Abstract
+from apps.async.base import BaseTask
+from common.exceptions import CrawlException
+from common.settings import RESULT_ROOT
+
+from .crawler import TmallCrawler
+from .middleware import TmallMiddleware
+from .pipeline import TmallPipeline
 
 
-class Tmall(Abstract):
-    top_page = 6
+class TaskTmall(BaseTask):
+
     login_url = 'https://login.taobao.com/member/login.jhtml'  # 淘宝登录地址
+    target_url = 'https://www.tmall.hk/' # 爬取的目标地址
 
-    def __init__(self, username, password):
-        super(Tmall, self).__init__(username, password)
-        self.setupChrome()
+    def __init__(self):
+        super(TaskTmall, self).__init__()
+        self.proxy = self.options.proxy
+        self.nickname = self.options.nickname
+        self.username = self.options.username
+        self.password = self.options.password
         self.categories = []
 
     def login(self):
         self.browser.get(self.login_url)
-        username_password_button = self.wait.until(EC.presence_of_element_located(
-            (By.CSS_SELECTOR, '.login-box.no-longlogin.module-quick > .hd > .login-switch')))  # 用css选择器选择 用账号密码登录按钮
-        username_password_button.click()  # 点击 用账号密码登录按钮
-        weibo_button = self.wait.until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, '.weibo-login')))  # 用css选择器选择 用微博登录按钮
-        weibo_button.click()  # 点击 用微博登录按钮
-        input_username = self.wait.until(
-            EC.presence_of_element_located((By.XPATH, '//input[@name="username"]')))  # 用xpath选择器选择 账号框
+        # 用css选择器选择 切换淘宝使用账号密码登录按钮
+        username_password_button = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.login-box.no-longlogin.module-quick > .hd > .login-switch')))
+        username_password_button.click()
+        # 用css选择器选择 使用微博登录按钮
+        weibo_button = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.weibo-login')))
+        weibo_button.click()
+        # 用xpath选择器选择 账号框
+        input_username = self.wait.until(EC.presence_of_element_located((By.XPATH, '//input[@name="username"]')))
         input_username.send_keys(self.username)  # 输入 账号
-        input_password = self.wait.until(
-            EC.presence_of_element_located((By.XPATH, '//input[@name="password"]')))  # 用xpath选择器选择 密码框
+        # 用xpath选择器选择 密码框
+        input_password = self.wait.until(EC.presence_of_element_located((By.XPATH, '//input[@name="password"]')))
         input_password.send_keys(self.password)  # 输入 密码
-        login_button = self.wait.until(
-            EC.presence_of_element_located((By.XPATH, '//span[text()="登录"]')))  # 用xpath选择器选择 登录按钮
-        login_button.click()  # 点击 登录按钮
-        taobao_name = self.wait.until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, '.site-nav-login-info-nick')))  # 用css选择器选择 淘宝昵称
-        print(''.join(['淘宝账号为：', taobao_name.text]))  # 输出 淘宝昵称
+        # 用xpath选择器选择 登录按钮
+        login_button = self.wait.until(EC.presence_of_element_located((By.XPATH, '//span[text()="登录"]')))
+        login_button.click()
+        # 用css选择器选择 淘宝昵称
+        taobao_name = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.site-nav-login-info-nick')))
+        # 通过输出淘宝的名称判断是否登录成功
+        if taobao_name.text == self.nickname:
+            print(''.join(['登录成功，淘宝账号为：', taobao_name.text]))
+        else:
+            print(''.join(['登录失败，淘宝账号为：', taobao_name.text]))
 
     def search(self, cargo):
         # 等待该页面input输入框加载完毕
-        input_widget = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,
-                                                                       'div.tm-nav-2015-new > div.tm-nav > div.tm-search > div.mall-search > form.mallSearch-form > fieldset > div.mallSearch-input > div.s-combobox > div.s-combobox-input-wrap > input.s-combobox-input')))
-        submit_btn = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,
-                                                                     'div.tm-nav-2015-new > div.tm-nav > div.tm-search > div.mall-search > form.mallSearch-form > fieldset > div.mallSearch-input > button')))
+        input_widget = self.wait.until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, 'div.tm-nav-2015-new > div.tm-nav > div.tm-search > div.mall-search > form.mallSearch-form > fieldset > div.mallSearch-input > div.s-combobox > div.s-combobox-input-wrap > input.s-combobox-input')))
+        submit_btn = self.wait.until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, 'div.tm-nav-2015-new > div.tm-nav > div.tm-search > div.mall-search > form.mallSearch-form > fieldset > div.mallSearch-input > button')))
         input_widget.clear()
         input_widget.send_keys(cargo)
         # 强制延迟1秒，防止被识别成机器人
         time.sleep(1)
         submit_btn.click()
 
-    def getPageTotal(self):
-        page_total = self.wait.until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, '.ui-page-skip > form')))  # 用css选择器选择 商品列表页 总页数框
-        page_total = page_total.text
-        page_total = re.match('.*?(\d+).*', page_total).group(1)  # 清洗
-        return page_total
-
-    def nextPage(self):
-        # 获取 下一页的按钮 并 点击
-        next_page_submit = self.wait.until(EC.presence_of_element_located(
-            (By.CSS_SELECTOR, '.ui-page > div.ui-page-wrap > b.ui-page-num > a.ui-page-next')))
-        next_page_submit.click()
-
-    def sliderVerification(self):
-        # 每次翻页后 检测是否有 滑块验证
-        try:
-            slider_button = WebDriverWait(self.browser, 5, 0.5).until(
-                EC.presence_of_element_located((By.ID, 'nc_1_n1z')))
-            actions = ActionChains(self.browser)
-            actions.click_and_hold(slider_button).perform()
-            trace = [10, 320]
-            for x in trace:
-                actions.move_by_offset(xoffset=x, yoffset=random.randint(-3, 3)).perform()
-                actions = ActionChains(self.browser)
-            time.sleep(1)
-            actions.release().perform()
-        except:
-            print('没有检测到滑块验证码')
-
-    def getCategories(self):
+    def get_categories(self):
         targets = []
         html = self.browser.page_source  # 获取 当前页面的 源代码
         doc = pq(html)  # pq模块 解析 网页源代码
@@ -119,15 +104,15 @@ class Tmall(Abstract):
             targets.append(main)
         return targets
 
-    def loadCategories(self):
+    def load_categories(self):
         # 创建需要爬取的种类的确认单
-        catejories_file = os.path.join(os.getcwd(), 'categories.json')
-        if not os.path.exists(catejories_file):
-            categories = self.getCategories()
-            with open(catejories_file, 'w', encoding='utf-8') as json_file:
+        categories_file = os.path.join(RESULT_ROOT, "tmall", 'categories.json')
+        if not os.path.exists(categories_file):
+            categories = self.get_categories()
+            with open(categories_file, 'w', encoding='utf-8') as json_file:
                 json_file.write(json.dumps(categories, indent=4))
         else:
-            with open(catejories_file, 'r', encoding='utf-8') as json_file:
+            with open(categories_file, 'r', encoding='utf-8') as json_file:
                 categories = json.loads(json_file.read())
 
         # 将已经 爬取过的类别 删除掉
@@ -142,7 +127,7 @@ class Tmall(Abstract):
         return res_category
 
     @staticmethod
-    def verifyStorage(category, parent_path):
+    def verify_storage(category, parent_path):
         # 判断当前的大类别是否已经进行了爬取，获取其存储路径
         if 'storage' in category:
             return category['storage']
@@ -153,17 +138,39 @@ class Tmall(Abstract):
                 os.makedirs(category_path)
             return category_path
 
-    def crawlTargets(self):
+    def proxy(self):
+        pass
+
+    def page_total(self):
+        # 商品列表页 总页数框
+        total_page = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.ui-page-skip > form')))
+        total_page = total_page.text
+        # 清洗获取总页数
+        self.total_page = int(re.match('.*?(\d+).*', total_page).group(1))
+
+    def page_prev(self):
+        # 获取 上一页的按钮 并 点击
+        prev_page_submit = self.wait.until(EC.presence_of_element_located(
+            (By.CSS_SELECTOR, '.ui-page > div.ui-page-wrap > b.ui-page-num > a.ui-page-prev')))
+        prev_page_submit.click()
+
+    def page_next(self):
+        # 获取 下一页的按钮 并 点击
+        next_page_submit = self.wait.until(EC.presence_of_element_located(
+            (By.CSS_SELECTOR, '.ui-page > div.ui-page-wrap > b.ui-page-num > a.ui-page-next')))
+        next_page_submit.click()
+
+    def run(self, *args, **kwargs):
         self.login()
-        self.browser.get('https://www.tmall.hk/')  # 天猫国际主页面
+        self.browser.get(self.target_url)
         time.sleep(2)
 
         # 创建存储结果的路径
-        storage_path = os.path.join(os.getcwd(), 'result')
+        storage_path = os.path.join(RESULT_ROOT, 'tmall')
         if not os.path.exists(storage_path):
             os.makedirs(storage_path)
 
-        categories = self.loadCategories()
+        categories = self.load_categories()
 
         # 遍历需要进行爬取的种类的清单
         try:
@@ -172,7 +179,7 @@ class Tmall(Abstract):
                 temp_category = category  # very important 为了实现断点续爬
 
                 # 判断当前的大类别是否已经进行了爬取，获取其存储路径
-                temp_category['storage'] = self.verifyStorage(category, storage_path)
+                temp_category['storage'] = self.verify_storage(category, storage_path)
 
                 print('当前爬取的大类目是：『{}』, 其子类一共 {} 种'.format(category['name'], len(category['subs'])))
 
@@ -182,7 +189,7 @@ class Tmall(Abstract):
                         # 声明 与当前一样的 subcategory 对象，后续需要对其进行存储
                         temp_subcategory = subcategory  # very important 为了实现断点续爬
                         # 判断当前的子类别是否已经进行了爬取，获取其存储路径
-                        temp_subcategory['storage'] = self.verifyStorage(subcategory, temp_category['storage'])
+                        temp_subcategory['storage'] = self.verify_storage(subcategory, temp_category['storage'])
 
                         if 'stage' in temp_subcategory:  # 如果当前这个子类已经爬取完了，那么就跳过
                             continue
@@ -192,16 +199,21 @@ class Tmall(Abstract):
                         # 确认 上次断点的时候在爬取的 项目的进度
                         try:
                             for __index, item in enumerate(subcategory['subs']):
+                                # crawler = TmallCrawler(item)
+                                # middleware = TmallMiddleware()
+                                # pipeline = TmallPipeline()
+                                # job = chain(crawler.s(item), middleware.s(), pipeline.s())()
+
                                 # 声明 与当前一样的 item 对象，后续需要对其进行存储
                                 temp_item = item  # very important 为了实现断点续爬
-                                current_page = 1  # 当前爬取的页面
+                                self.current_page = 1  # 当前爬取的页面
                                 write_title = True  # 判断是否需要输入 csv 标题
 
                                 if 'stage' in item:
                                     if item['stage'] == 'finish':  # 如果当前这个项目已经爬取完了，那么就跳过这项目
                                         continue
                                     else:
-                                        current_page = int(item['stage'])
+                                        self.current_page = int(item['stage'])
 
                                 if 'file' in item:
                                     file_path = item['file']
@@ -225,48 +237,40 @@ class Tmall(Abstract):
                                                  '详情页网址', ])
                                             records_file.write('{}\n'.format(title))
 
-                                        page_total = int(self.getPageTotal())  # 获取 商品列表页 总页数
-                                        if page_total > self.top_page:
-                                            page_total = self.top_page
-                                        page_count = 1
-                                        while page_count < page_total:  # 遍历 前多少页的 商品列表页
+                                        self.page_total()  # 获取 商品列表页 总页数
+                                        while self.current_page < self.total_page:  # 遍历 前多少页的 商品列表页
                                             # 跳过之前已经爬取过的页面
-                                            if page_count != current_page:
+                                            if page_count != self.current_page:
                                                 self.slideDown()  # 执行 下拉动作
-                                                self.nextPage()  # 执行 按下一页按钮 动作
+                                                self.page_next()  # 执行 按下一页按钮 动作
                                                 self.sliderVerification()  # 检测是否有 滑块验证
                                                 page_count += 1
                                             else:
-                                                self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR,
-                                                                                                '#J_ItemList .product .product-iWrap')))  # 确认 当前商品列表页 的 全部商品 都 加载完成
-                                                html = self.browser.page_source  # 获取 当前页面的 源代码
-                                                doc = pq(html)  # pq模块 解析 网页源代码
+                                                # 确认 当前商品列表页 的 全部商品 都 加载完成
+                                                self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '#J_ItemList .product .product-iWrap')))
+                                                # 获取 当前页面的 源代码
+                                                html = self.browser.page_source
+                                                doc = pq(html)
                                                 goods_items = doc('#J_ItemList .product').items()  # 获取 当前页 全部商品数据
                                                 for _ in goods_items:  # 遍历 全部商品数据
-                                                    goods_title = _.find('.productTitle').text().replace('\n',
-                                                                                                         '')  # 获取 商品标题 并清洗
-                                                    goods_sales_volume = _.find(
-                                                        '.productStatus span').text()  # 获取 商品月销量 并清洗
-                                                    goods_price = _.find('.productPrice').text().replace('¥\n',
-                                                                                                         '')  # 获取 商品价格 并清洗
-                                                    goods_shop = _.find('.productShop').text().replace('\n',
-                                                                                                       '')  # 获取 店名 并清洗
-                                                    goods_url = ''.join(['https:', _.find('.productImg').attr(
-                                                        'href')])  # 获取 详情页网址 并在地址最前面加上 https:
-                                                    goods_id = re.match('.*?id=?(\d+)&.*', goods_url).group(
-                                                        1)  # 获取 商品id
+                                                    goods_title = _.find('.productTitle').text().replace('\n', '')
+                                                    goods_sales_volume = _.find('.productStatus span').text()
+                                                    goods_price = _.find('.productPrice').text().replace('¥\n', '')
+                                                    goods_shop = _.find('.productShop').text().replace('\n', '')
+                                                    goods_url = ''.join(['https:', _.find('.productImg').attr('href')])
+                                                    goods_id = re.match('.*?id=?(\d+)&.*', goods_url).group(1)
                                                     record = ','.join(
                                                         [goods_id, category['name'], subcategory['name'], item['name'],
                                                          goods_title, str(goods_price), str(goods_sales_volume),
-                                                         goods_shop, goods_url])
-                                                    print(record)
+                                                         goods_shop, goods_url]
+                                                    )
                                                     records_file.write('{}\n'.format(record))
 
-                                                self.slideDown()  # 执行 下拉动作
-                                                self.nextPage()  # 执行 按下一页按钮 动作
-                                                self.sliderVerification()  # 检测是否有 滑块验证
+                                                self.slideDown()
+                                                self.nextPage()
+                                                self.sliderVerification()
                                                 page_count += 1
-                                                current_page += 1
+                                                self.current_page += 1
                                                 temp_item['stage'] = page_count
 
                                             time.sleep(2)
@@ -292,6 +296,6 @@ class Tmall(Abstract):
         except CrawlException:
             self.browser.quit()
         finally:
-            catejories_file = os.path.join(os.getcwd(), 'categories.json')
-            with open(catejories_file, 'w', encoding='utf-8') as json_file:
+            categories_file = os.path.join(RESULT_ROOT, 'tmall', 'categories.json')
+            with open(categories_file, 'w', encoding='utf-8') as json_file:
                 json_file.write(json.dumps(categories, indent=4))

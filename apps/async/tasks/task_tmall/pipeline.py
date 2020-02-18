@@ -1,22 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # ==================================================
-# @Time : 2020/2/12-11:28
+# @Time : 2020/2/17-16:25
 # @Author : Ryuchen
 # @Site : https://ryuchen.github.io
-# @File : task_proxy.py
+# @File : pipline
 # @Desc : 
 # ==================================================
-from celery.schedules import crontab
+from celery.task import Task
 
 
-from apps.periodic.base import BaseTask
+class TmallPipeline(Task):
 
-
-class TaskProxy(BaseTask):
-
-    name = "task_proxy"
-    run_every = crontab(minute="*")
-
+    # 负责将抽取后的信息进行存储的模块
     def run(self, *args, **kwargs):
         pass

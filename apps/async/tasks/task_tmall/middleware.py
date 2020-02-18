@@ -1,22 +1,16 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # ==================================================
-# @Time : 2020/2/12-11:28
+# @Time : 2020/2/17-16:25
 # @Author : Ryuchen
 # @Site : https://ryuchen.github.io
-# @File : task_proxy.py
+# @File : middleware
 # @Desc : 
 # ==================================================
-from celery.schedules import crontab
+from celery.task import Task
 
+class TmallMiddleware(Task):
 
-from apps.periodic.base import BaseTask
-
-
-class TaskProxy(BaseTask):
-
-    name = "task_proxy"
-    run_every = crontab(minute="*")
-
+    # 负责对每个爬取的页面进行信息抽取和清理的模块
     def run(self, *args, **kwargs):
         pass

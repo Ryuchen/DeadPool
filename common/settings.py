@@ -16,6 +16,7 @@ from utils.network import hostaddr
 from utils.driver import loader_driver
 
 _current_dir = os.path.abspath(os.path.dirname(__file__))
+RESULT_ROOT = os.path.normpath(os.path.join(_current_dir, "..", "result"))
 CONFIG_ROOT = os.path.normpath(os.path.join(_current_dir, "..", "config"))
 
 class Settings:

@@ -57,7 +57,6 @@ app.conf.update(
     worker_prefetch_multiplier=1,
 )
 
-
 # When celery start to initialise need to load multiple database session to context.
 @app.on_configure.connect
 def setup_initialise(sender, **kwargs):
