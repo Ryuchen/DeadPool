@@ -1,8 +1,8 @@
-<h1 align="center">Welcome to DeadPool(死海)</h1>
+<h1 align="center">Welcome to DeadPool</h1>
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v1.0-blue.svg?cacheSeconds=2592000" />
+  <img src="https://img.shields.io/badge/version-v0.2-red.svg?cacheSeconds=2592000" />
   <img src="https://img.shields.io/badge/language-python3-blue.svg?cacheSeconds=2592000" />
-  <img src="https://img.shields.io/badge/platform-macos-blue.svg?cacheSeconds=2592000" />
+  <img src="https://img.shields.io/badge/platform-linux-blue.svg?cacheSeconds=2592000" />
   <a href="http://www.gnu.org/licenses/gpl-3.0.html">
     <img alt="License: GPL" src="https://img.shields.io/badge/License-GPL-yellow.svg" target="_blank" />
   </a>
@@ -81,4 +81,6 @@ This project is [GPL](http://www.gnu.org/licenses/gpl-3.0.html) licensed.
 请谨遵开源协议，谢谢使用！
 
 ***
+[![Release](https://img.shields.io/github/release/Ryuchen/DeadPool?color=blue)](https://github.com/Ryuchen/DeadPool/releases) [![Contributors](https://img.shields.io/github/contributors/Ryuchen/DeadPool?color=blue)](https://github.com/Ryuchen/DeadPool/graphs/contributors) [![Last commit](https://img.shields.io/github/last-commit/Ryuchen/DeadPool?color=blue)](https://github.com/Ryuchen/DeadPool/commits/master)
+
 _This README was generated with ❤️ by [readme-md-generator](https://github.com/kefranabg/readme-md-generator)_
