@@ -35,6 +35,8 @@ sys.path.append(cur_dir)
 # We need to setup the global default settings
 Settings.loading_config()
 
+Settings.default_config["settings"]["driver"] = "/opt/openwrt/chromedirver"
+
 # Initialise the celery redis connection
 redis_host = Settings.search_config("connection|redis|host", "localhost")
 redis_port = Settings.search_config("connection|redis|port", 6379)

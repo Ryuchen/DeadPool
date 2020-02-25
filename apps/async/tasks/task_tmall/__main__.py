@@ -48,7 +48,7 @@ class TaskTmall(BaseTask):
     '''
 
     def __init__(self):
-        super(BaseTask).__init__()
+        super(TaskTmall, self).__init__()
         self.proxy = self.options.get("proxy", False)
         self.nickname = self.options.get("proxy", False)
         self.username = self.options.get("proxy", False)
@@ -69,15 +69,15 @@ class TaskTmall(BaseTask):
             # 存储的位置
             self.storage = self.module.storage
 
-        # 创建用于爬取记录的sqlite数据库
-        if not os.path.exists(os.path.join('/tmp', '{}-records.db'.format(self.name))):
-            self.conn = SQLiteDao(os.path.join('/tmp', '{}-records.db'.format(self.name)))
-            self.conn.create(self.table_ddl)
-            for _ in self.options.get("keyword"):
-                sql = "INSERT INTO RECORDS (TARGET, STAGE, STORAGE) VALUES ({}, '-1', 'N/A')".format(_)
-                self.conn.insert_execute(sql)
-        else:
-            self.conn = SQLiteDao(os.path.join('/tmp', '{}-records.db'.format(self.name)))
+        # # 创建用于爬取记录的sqlite数据库
+        # if not os.path.exists(os.path.join('/tmp', '{}-records.db'.format(self.name))):
+        #     self.conn = SQLiteDao(os.path.join('/tmp', '{}-records.db'.format(self.name)))
+        #     self.conn.create(self.table_ddl)
+        #     for _ in self.options.get("keyword"):
+        #         sql = "INSERT INTO RECORDS (TARGET, STAGE, STORAGE) VALUES ({}, '-1', 'N/A')".format(_)
+        #         self.conn.insert_execute(sql)
+        # else:
+        #     self.conn = SQLiteDao(os.path.join('/tmp', '{}-records.db'.format(self.name)))
 
     def login(self):
         self.browser.get(self.login_url)
@@ -104,15 +104,13 @@ class TaskTmall(BaseTask):
         else:
             print(''.join(['登录失败，淘宝账号为：', taobao_name.text]))
 
-    def proxy(self):
-        pass
-
     def resume(self):
         """
         根据启用的存储模型来找寻上一次爬取的中断位置
         :return:
         """
-        self.targets = self.conn.select_execute("SELECT * from RECORDS where STAGE is not 'finish' order by ID")
+        # self.targets = self.conn.select_execute("SELECT * from RECORDS where STAGE is not 'finish' order by ID")
+        pass
 
     def run(self, *args, **kwargs):
         self.login()
@@ -120,8 +118,6 @@ class TaskTmall(BaseTask):
 
         # TODO: 如何判断网页是否加载完成
         time.sleep(2)
-
-        self.resume() 
 
         # 遍历需要进行爬取的种类的清单
         # try:
