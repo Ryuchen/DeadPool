@@ -1,10 +1,10 @@
-<h1 align="center">Welcome to DeadPool</h1>
-<p align="center">
-  <img src="https://img.shields.io/badge/version-v0.2-red.svg?cacheSeconds=2592000" />
-  <img src="https://img.shields.io/badge/language-python3-blue.svg?cacheSeconds=2592000" />
-  <img src="https://img.shields.io/badge/platform-linux-blue.svg?cacheSeconds=2592000" />
+<h1 style="align-content: center">Welcome to DeadPool</h1>
+<p style="align-content: center">
+  <img src="https://img.shields.io/badge/version-v0.2-red.svg?cacheSeconds=2592000"  alt="version"/>
+  <img src="https://img.shields.io/badge/language-python3-blue.svg?cacheSeconds=2592000"  alt="language"/>
+  <img src="https://img.shields.io/badge/platform-linux-blue.svg?cacheSeconds=2592000"  alt="platform"/>
   <a href="http://www.gnu.org/licenses/gpl-3.0.html">
-    <img alt="License: GPL" src="https://img.shields.io/badge/License-GPL-yellow.svg" target="_blank" />
+    <img alt="License: GPL" src="https://img.shields.io/badge/License-GPL-yellow.svg"/>
   </a>
 </p>
 
