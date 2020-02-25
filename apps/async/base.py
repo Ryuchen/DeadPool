@@ -7,8 +7,6 @@
 # @File : base.py
 # @Desc : 
 # ==================================================
-import time
-import random
 
 from celery.task import Task
 from common.settings import Settings
@@ -35,10 +33,10 @@ class BaseTask(Task):
         self.browser.maximize_window()  # 设置窗口最大化
         self.wait = WebDriverWait(self.browser, 10)  # 设置一个智能等待为10秒
 
-        self.total_page = 0
-        self.current_page = -1
+        self.module = None
+        self.storage = ""
 
-    # 登录方法
+    # 登录
     def login(self):
         raise NotImplementedError
 
@@ -46,27 +44,8 @@ class BaseTask(Task):
     def proxy(self):
         raise NotImplementedError
 
-    # 模拟浏览动作
-    def slide_view(self):
-        view_second = random.randint(5, 10)
-        for i in range(int(view_second / 0.1)):
-            js = "var q=document.documentElement.scrollTop=" + str(300 + 200 * i)
-            self.browser.execute_script(js)
-            time.sleep(0.1)
-        js = "var q=document.documentElement.scrollTop=100000"
-        self.browser.execute_script(js)
-        time.sleep(0.2)
-
-    # 获取总页面
-    def page_total(self):
-        raise NotImplementedError
-
-    # 切换页面进行数据加载
-    def page_next(self):
-        raise NotImplementedError
-
-    # 切换页面进行数据加载
-    def page_prev(self):
+    # 断点续爬
+    def resume(self):
         raise NotImplementedError
 
     # 爬取目标数据

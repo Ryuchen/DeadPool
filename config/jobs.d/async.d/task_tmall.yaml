@@ -1,4 +1,10 @@
 module: "async"
+storage:
+  module: "FileStorage"
+  path: ""
+keyword:
+  - "大豆"
+  - "玉米"
 options:
   proxy: true
   nickname: 'nickname'

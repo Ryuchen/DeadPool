@@ -39,14 +39,15 @@ connection:
 # Base Fundamental Settings
 settings:
   cluster:
-    name: deadpool
+    name: "deadpool"
     node:
-      role: master
-      name: node-1
+      role: "master"
+      name: "node-1"
   #
-  # Storage Pool Settings
+  # Storage Settings
+  # By default, if the task did not set the storage, it will storage in the mongodb
   storage:
     module:
-      - FileStorage
-      - MongoDB
-      - SQLite
+      - "SQLite"
+      - "MongoDB"
+      - "FileStorage"

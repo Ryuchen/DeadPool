@@ -22,8 +22,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
 from apps.async.base import BaseTask
+from common.sqlitedao import SQLiteDao
 from common.exceptions import CrawlException
-from common.settings import RESULT_ROOT
 
 from .crawler import TmallCrawler
 from .middleware import TmallMiddleware
@@ -35,13 +35,45 @@ class TaskTmall(BaseTask):
     login_url = 'https://login.taobao.com/member/login.jhtml'  # 淘宝登录地址
     target_url = 'https://www.tmall.hk/' # 爬取的目标地址
 
+    table_ddl = '''
+     CREATE TABLE IF NOT EXISTS RECORDS
+     (
+         ID INTEGER PRIMARY KEY AUTOINCREMENT,
+         TARGET CHAR(50) NOT NULL,
+         STAGE CHAR(50) NOT NULL,
+         STORAGE TEXT NOT NULL,
+     );
+    '''
+
     def __init__(self):
         super(TaskTmall, self).__init__()
         self.proxy = self.options.proxy
         self.nickname = self.options.nickname
         self.username = self.options.username
         self.password = self.options.password
-        self.categories = []
+        self.targets = []
+
+        storage_module = self.options.storage.get("module", "MongoDB")
+        if storage_module == "FileStorage":
+            from common.plugins.storage.filestorage import FileStorage
+            # 按配置加载的存储模块实例
+            self.module = FileStorage(self.name, self.options.storage.get("path", ""))
+            # 存储的位置
+            self.storage = self.module.storage
+        elif storage_module == "SQLite":
+            pass
+        else:
+            pass
+
+        # 创建用于爬取记录的sqlite数据库
+        if not os.path.exists(os.path.join(self.storage, 'records.db')):
+            self.conn = SQLiteDao(os.path.join(self.storage, 'records.db'))
+            self.conn.create(self.table_ddl)
+            for _ in self.options.keyword:
+                sql = "INSERT INTO RECORDS (TARGET, STAGE, STORAGE) VALUES ({}, '-1', 'N/A')".format(_)
+                self.conn.insert_execute(sql)
+        else:
+            self.conn = SQLiteDao(os.path.join(self.storage, 'records.db'))
 
     def login(self):
         self.browser.get(self.login_url)
@@ -68,65 +100,16 @@ class TaskTmall(BaseTask):
         else:
             print(''.join(['登录失败，淘宝账号为：', taobao_name.text]))
 
-    def search(self, cargo):
-        # 等待该页面input输入框加载完毕
-        input_widget = self.wait.until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'div.tm-nav-2015-new > div.tm-nav > div.tm-search > div.mall-search > form.mallSearch-form > fieldset > div.mallSearch-input > div.s-combobox > div.s-combobox-input-wrap > input.s-combobox-input')))
-        submit_btn = self.wait.until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'div.tm-nav-2015-new > div.tm-nav > div.tm-search > div.mall-search > form.mallSearch-form > fieldset > div.mallSearch-input > button')))
-        input_widget.clear()
-        input_widget.send_keys(cargo)
-        # 强制延迟1秒，防止被识别成机器人
-        time.sleep(1)
-        submit_btn.click()
+    def proxy(self):
+        pass
 
-    def get_categories(self):
-        targets = []
-        html = self.browser.page_source  # 获取 当前页面的 源代码
-        doc = pq(html)  # pq模块 解析 网页源代码
-        categories = doc('dl.J_catagory_item').items()  # 获取 当前页 全部商品数据
-        for category in categories:
-            main = {
-                'name': category.find('h2').text(),
-                'subs': []
-            }
-            for subcategory in category.find('div.tm-category-block').items():
-                if '热门品牌' not in subcategory.find('h3').text():
-                    sub = {
-                        'name': subcategory.find('h3').text(),
-                        'subs': []
-                    }
-                    for item in subcategory.find('a').items():
-                        temp = {'name': item.text(), 'href': item.attr('href')}
-                        sub['subs'].append(temp)
-                    main['subs'].append(sub)
+    def resume(self):
+        """
+        根据启用的存储模型来找寻上一次爬取的中断位置
+        :return:
+        """
+        self.targets = self.conn.select_execute("SELECT * from RECORDS where STAGE is not 'finish' order by ID")
 
-            targets.append(main)
-        return targets
-
-    def load_categories(self):
-        # 创建需要爬取的种类的确认单
-        categories_file = os.path.join(RESULT_ROOT, "tmall", 'categories.json')
-        if not os.path.exists(categories_file):
-            categories = self.get_categories()
-            with open(categories_file, 'w', encoding='utf-8') as json_file:
-                json_file.write(json.dumps(categories, indent=4))
-        else:
-            with open(categories_file, 'r', encoding='utf-8') as json_file:
-                categories = json.loads(json_file.read())
-
-        # 将已经 爬取过的类别 删除掉
-        res_category = []
-        while len(categories):
-            category = categories.pop()
-            if 'stage' not in category:
-                res_category.append(category)
-
-        print('待爬取的大类目一共 {} 种'.format(len(res_category)))
-
-        return res_category
-
-    @staticmethod
     def verify_storage(category, parent_path):
         # 判断当前的大类别是否已经进行了爬取，获取其存储路径
         if 'storage' in category:
@@ -138,43 +121,18 @@ class TaskTmall(BaseTask):
                 os.makedirs(category_path)
             return category_path
 
-    def proxy(self):
-        pass
-
-    def page_total(self):
-        # 商品列表页 总页数框
-        total_page = self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.ui-page-skip > form')))
-        total_page = total_page.text
-        # 清洗获取总页数
-        self.total_page = int(re.match('.*?(\d+).*', total_page).group(1))
-
-    def page_prev(self):
-        # 获取 上一页的按钮 并 点击
-        prev_page_submit = self.wait.until(EC.presence_of_element_located(
-            (By.CSS_SELECTOR, '.ui-page > div.ui-page-wrap > b.ui-page-num > a.ui-page-prev')))
-        prev_page_submit.click()
-
-    def page_next(self):
-        # 获取 下一页的按钮 并 点击
-        next_page_submit = self.wait.until(EC.presence_of_element_located(
-            (By.CSS_SELECTOR, '.ui-page > div.ui-page-wrap > b.ui-page-num > a.ui-page-next')))
-        next_page_submit.click()
-
     def run(self, *args, **kwargs):
         self.login()
         self.browser.get(self.target_url)
+
+        # TODO: 如何判断网页是否加载完成
         time.sleep(2)
 
-        # 创建存储结果的路径
-        storage_path = os.path.join(RESULT_ROOT, 'tmall')
-        if not os.path.exists(storage_path):
-            os.makedirs(storage_path)
-
-        categories = self.load_categories()
+        self.resume() 
 
         # 遍历需要进行爬取的种类的清单
         try:
-            for index, category in enumerate(categories):
+            for index, _ in enumerate(self.targets):
                 # 声明 与当前一样的 category 对象，后续需要对其进行存储
                 temp_category = category  # very important 为了实现断点续爬
 
@@ -199,14 +157,18 @@ class TaskTmall(BaseTask):
                         # 确认 上次断点的时候在爬取的 项目的进度
                         try:
                             for __index, item in enumerate(subcategory['subs']):
-                                # crawler = TmallCrawler(item)
-                                # middleware = TmallMiddleware()
-                                # pipeline = TmallPipeline()
-                                # job = chain(crawler.s(item), middleware.s(), pipeline.s())()
+                                # 如果当前这个项目已经爬取完了，那么就跳过这项目
+                                if item.get('stage', '') == 'finish':
+                                    continue
+                                else:
+                                    crawler = TmallCrawler(self.search, item)
+                                    middleware = TmallMiddleware()
+                                    pipeline = TmallPipeline()
+                                    job = chain(crawler.s(item), middleware.s(), pipeline.s())()
 
                                 # 声明 与当前一样的 item 对象，后续需要对其进行存储
-                                temp_item = item  # very important 为了实现断点续爬
                                 self.current_page = 1  # 当前爬取的页面
+                                temp_item = item  # very important 为了实现断点续爬
                                 write_title = True  # 判断是否需要输入 csv 标题
 
                                 if 'stage' in item:
