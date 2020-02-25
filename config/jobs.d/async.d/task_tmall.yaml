@@ -1,5 +1,5 @@
 class: "TaskTmall"
-module: "async"
+module: "asynch"
 options:
   storage:
     module: "FileStorage"

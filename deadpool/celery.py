@@ -35,8 +35,6 @@ sys.path.append(cur_dir)
 # We need to setup the global default settings
 Settings.loading_config()
 
-Settings.default_config["settings"]["driver"] = "/opt/openwrt/chromedirver"
-
 # Initialise the celery redis connection
 redis_host = Settings.search_config("connection|redis|host", "localhost")
 redis_port = Settings.search_config("connection|redis|port", 6379)
@@ -44,7 +42,7 @@ redis_port = Settings.search_config("connection|redis|port", 6379)
 redis_usr = Settings.search_config("connection|redis|username", "username")
 redis_pwd = Settings.search_config("connection|redis|password", "password")
 
-if { redis_usr, redis_pwd } == { "username", "password" }:
+if {redis_usr, redis_pwd} == {"username", "password"}:
     broker = 'redis://{0}:{1}/3'.format(redis_host, redis_port)
     backend = 'redis://{0}:{1}/4'.format(redis_host, redis_port)
 else:
@@ -64,6 +62,7 @@ app.conf.update(
     worker_max_tasks_per_child=1,
     worker_prefetch_multiplier=1,
 )
+
 
 # When celery start to initialise need to load multiple database session to context.
 @app.on_configure.connect

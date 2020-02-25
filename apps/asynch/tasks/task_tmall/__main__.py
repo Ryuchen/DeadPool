@@ -21,7 +21,7 @@ from pyquery import PyQuery as pq
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
-from apps.async.base import BaseTask
+from apps.asynch.base import BaseTask
 from common.sqlitedao import SQLiteDao
 from common.exceptions import CrawlException
 
@@ -35,7 +35,7 @@ class TaskTmall(BaseTask):
     name = "task_tmall"
 
     login_url = 'https://login.taobao.com/member/login.jhtml'  # 淘宝登录地址
-    target_url = 'https://www.tmall.com/' # 爬取的目标地址
+    target_url = 'https://www.tmall.com/'  # 爬取的目标地址
 
     table_ddl = '''
  CREATE TABLE IF NOT EXISTS RECORDS

@@ -29,9 +29,10 @@ def loader_driver():
 
     driver_path = os.path.join(_current_dir, "..", "driver", unpack_driver)
 
-    # Create a ZipFile Object and load sample.zip in it
-    with zipfile.ZipFile(driver_path, 'r') as zipObj:
-        # Extract all the contents of zip file in different directory
-        zipObj.extractall(os.path.join(_current_dir, "..", "bin"))
+    if not os.path.exists(os.path.join(_current_dir, "..", "bin", driver_name)):
+        # Create a ZipFile Object and load sample.zip in it
+        with zipfile.ZipFile(driver_path, 'r') as zipObj:
+            # Extract all the contents of zip file in different directory
+            zipObj.extractall(os.path.join(_current_dir, "..", "bin"))
 
     return os.path.abspath(os.path.join(_current_dir, "..", "bin", driver_name))

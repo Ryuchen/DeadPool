@@ -29,7 +29,6 @@ class BaseTask(Task):
         # 设置为开发者模式，防止被各大网站识别出来使用了Selenium
         options.add_experimental_option('excludeSwitches', ['enable-automation'])
         # 接收传入的 chromedriver 地址 和设置好的 options
-        print(Settings.search_config("settings|driver"))
         self.browser = webdriver.Chrome(executable_path=Settings.search_config("settings|driver"), options=options)
         self.browser.maximize_window()  # 设置窗口最大化
         self.wait = WebDriverWait(self.browser, 10)  # 设置一个智能等待为10秒
