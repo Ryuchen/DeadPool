@@ -1,3 +1,4 @@
+class: "TaskProxy"
 module: "periodic"
 options:
   pool:

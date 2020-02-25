@@ -1,8 +1,11 @@
 module: "async"
+storage:
+  module: "FileStorage"
+  collection: ""
+keyword:
+  - "大豆"
+  - "玉米"
 options:
-  target: "http://www.eastmoney.com/"
   proxy: true
-  distribute: false
-  rawlog: false
   username: 'username'
   password: 'password'

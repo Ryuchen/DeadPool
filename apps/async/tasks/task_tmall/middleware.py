@@ -7,7 +7,7 @@
 # @File : middleware
 # @Desc : 
 # ==================================================
-from celery.task import Task
+from celery import Task
 
 class TmallMiddleware(Task):
 

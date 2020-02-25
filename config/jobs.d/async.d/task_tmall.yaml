@@ -1,11 +1,12 @@
+class: "TaskTmall"
 module: "async"
-storage:
-  module: "FileStorage"
-  path: ""
-keyword:
-  - "大豆"
-  - "玉米"
 options:
+  storage:
+    module: "FileStorage"
+    path: ""
+  keyword:
+    - "大豆"
+    - "玉米"
   proxy: true
   nickname: 'nickname'
   username: 'username'

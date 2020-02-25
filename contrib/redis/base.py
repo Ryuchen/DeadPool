@@ -36,6 +36,3 @@ class RedisBase(object):
             })
 
         self.Session = redis.Redis(connection_pool=redis.ConnectionPool(**redis_setting))
-
-    def __del__(self):
-        self.Session.close()

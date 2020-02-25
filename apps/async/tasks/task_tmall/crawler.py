@@ -11,7 +11,7 @@ import re
 import time
 import traceback
 
-from celery.task import Task
+from celery import Task
 from celery.utils.log import get_task_logger
 
 from selenium.webdriver.support import expected_conditions as EC
@@ -20,14 +20,14 @@ from selenium.webdriver.common.by import By
 logger = get_task_logger(__name__)
 
 
-class TmallCrawler(Task):
+class TmallCrawler:
 
-    def __init__(self, target):
-        self.target = target
-
-        # 爬取的页面总数
-        self.total_page = 1
-        self.current_page = 1
+    # def __init__(self, target):
+    #     self.target = target
+    #
+    #     # 爬取的页面总数
+    #     self.total_page = 1
+    #     self.current_page = 1
 
     def resume(self):
         # 获取之前中断的页面位置

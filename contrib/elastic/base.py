@@ -7,29 +7,26 @@
 # @File : query.py
 # @Desc : 
 # ==================================================
-import logging
 import datetime
+
+from celery.utils.log import get_logger
 
 from elasticsearch import exceptions
 from elasticsearch_dsl import connections
 
 from common.settings import Settings
 
-log = logging.getLogger(__name__)
+log = get_logger(__name__)
 
 
 class ElasticBase(object):
 
     def __init__(self):
-        es_settings = dict(
-            hosts = {
-                "host": Settings.search_config("connection|elasticsearch|host", "127.0.0.1"),
-                "port": Settings.search_config("connection|elasticsearch|port", 9200)
-            }
-        )
+        host = Settings.search_config("connection|elasticsearch|host", "127.0.0.1")
+        port = Settings.search_config("connection|elasticsearch|port", 9200)
 
         try:
-            self.Session = connections.create_connection(es_settings)
+            self.Session = connections.create_connection(hosts=["{}:{}".format(host, port)])
         except exceptions.ElasticsearchException:
             self.Session = None
         except exceptions.AuthenticationException:

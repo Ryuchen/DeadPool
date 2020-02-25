@@ -8,7 +8,7 @@
 # @Desc : 
 # ==================================================
 
-from celery.task import Task
+from celery import Task
 from common.settings import Settings
 
 from selenium import webdriver

@@ -25,6 +25,12 @@ from contrib.elastic.base import ElasticBase
 
 log = logging.getLogger(__name__)
 
+# We should append the current dir into our running path
+# So that we can use find out tasks and register it
+cur_dir = os.getcwd()
+sys.path.append(cur_dir)
+# Than our application will running in full mode
+
 # Once, as part of application setup, during deploy/migrations:
 # We need to setup the global default settings
 Settings.loading_config()
@@ -68,7 +74,7 @@ def setup_initialise(sender, **kwargs):
             "elastic": ElasticBase().Session
         }
         setattr(sender, "_session_pool", _session_pool)
-        log.debug("successes celery app on configure")
+        log.debug("successes load backend session pool on deadpool app at on_configure.connect")
     except Exception as e:
         log.error(e)
 
@@ -76,7 +82,6 @@ def setup_initialise(sender, **kwargs):
 # When celery after initialise we register our task into the celery.
 @app.on_after_configure.connect
 def setup_celery_tasks(sender, **kwargs):
-    sys.path.append(os.getcwd())
     for task_name, task_option in Settings.jobs_config.get("jobs", {}).items():
         module_path = 'apps.{0}.tasks.{1}'.format(task_option.get("module"), task_name)
         try:
@@ -85,31 +90,31 @@ def setup_celery_tasks(sender, **kwargs):
             ip_module_class.options = task_option.get("options")
             task_instance = ip_module_class()
             sender.register_task(task_instance)
-            log.debug("successes celery app on after configure")
+            log.debug("successes load job task on deadpool app at on_after_configure.connect")
         except Exception as e:
-            log.error(e)
+            log.exception(e)
 
 
 # When celery start the task, we need to tell it the last time running status.
-@task_prerun.connect
-def search_agg_task_log(signal, sender, *args, **kwargs):
-    # This is to set this time running clock(super precision)
-    running_time = datetime.datetime.now().replace(second=0, microsecond=0)
-    sender.request.kwargs = {
-        "datetime": running_time
-    }
-
-
-@task_success.connect
-def insert_agg_task_log(signal, sender, result, *args, **kwargs):
-    # Get last running time
-    log.info("signals received: %s" % sender.name)
-
-
-@task_failure.connect
-def record_agg_task_log(signal, sender, **kwargs):
-    # Get last running time
-    log.info("signals received: %s" % sender.name)
+# @task_prerun.connect
+# def search_agg_task_log(signal, sender, *args, **kwargs):
+#     # This is to set this time running clock(super precision)
+#     running_time = datetime.datetime.now().replace(second=0, microsecond=0)
+#     sender.request.kwargs = {
+#         "datetime": running_time
+#     }
+#
+#
+# @task_success.connect
+# def insert_agg_task_log(signal, sender, result, *args, **kwargs):
+#     # Get last running time
+#     log.info("signals received: %s" % sender.name)
+#
+#
+# @task_failure.connect
+# def record_agg_task_log(signal, sender, **kwargs):
+#     # Get last running time
+#     log.info("signals received: %s" % sender.name)
 
 
 if __name__ == '__main__':

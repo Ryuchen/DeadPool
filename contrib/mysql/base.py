@@ -7,11 +7,16 @@
 # @File : query.py
 # @Desc : 
 # ==================================================
+from celery.utils.log import get_logger
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, scoped_session
 
 from common.settings import Settings
 from common.singleton import singleton
+from common.exceptions import SetupException
+
+log = get_logger(__name__)
 
 
 @singleton
@@ -25,9 +30,14 @@ class MysqlBase(object):
 
         username = Settings.search_config("connection|mysql|username", "username")
         password = Settings.search_config("connection|mysql|password", "password")
+
         database = Settings.search_config("connection|mysql|database", "deadpool")
 
-        dsn_string.format(username, password, host, port, database)
+        if { username, password } != { "username", "password" }:
+            dsn_string = dsn_string.format(username, password, host, port, database)
+        else:
+            raise SetupException("You must setup properly MySQL username && password!")
+
         self._connect_database(dsn_string)
 
         # Disable SQL loggings. Turn it on for debugging.
@@ -38,10 +48,6 @@ class MysqlBase(object):
 
         # Get db session.
         self.Session = scoped_session(sessionmaker(bind=self.engine))
-
-    def __del__(self):
-        """ Disconnects pool. """
-        self.engine.dispose()
 
     def _connect_database(self, connection_string):
         """Connect to a Database.

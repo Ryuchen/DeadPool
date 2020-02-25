@@ -81,12 +81,13 @@
 ├── contrib/   # celery 核心库
     ├── elastic/   # elasticsearch（用于执行任务日志记录）
         ├── indices/   # elasticsearch index mapping 
-            ├── rlogs.py
+            ├── rlogs.py   # 运行日志的 index mapping
             └── __init__.py
         ├── base.py   # elasticsearch 实例创建类
         └── __init__.py
-    ├── mysql/   # mysql（未使用）
-        ├── tables/
+    ├── mysql/   # mysql（用来暂存 IP proxy）
+        ├── tables/    # mysql table mapping 
+            ├── proxy.py   # IP proxy table mapping
             └── __init__.py
         ├── base.py
         └── __init__.py

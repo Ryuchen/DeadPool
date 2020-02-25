@@ -7,3 +7,8 @@
 # @File : __init__.py
 # @Desc : 
 # ==================================================
+
+from .__main__ import TaskTmall
+
+
+__all__ = ["TaskTmall"]

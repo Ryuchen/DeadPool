@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # ==================================================
-# @Time : 2020/2/12-14:16
+# @Time : 2020/2/25-16:05
 # @Author : Ryuchen
 # @Site : https://ryuchen.github.io
-# @File : exceptions
+# @File : __init__.py
 # @Desc : 
 # ==================================================
 
-class SetupException(Exception):
-    pass
-
-class CrawlException(Exception):
-    pass
+from .__main__ import TaskProxy

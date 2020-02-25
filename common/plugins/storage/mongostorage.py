@@ -7,3 +7,11 @@
 # @File : mongostorage
 # @Desc : 
 # ==================================================
+
+class MongoStorage:
+
+    def __init__(self, task, collection):
+        if not collection:
+            self.storage = None
+        else:
+            self.storage = None

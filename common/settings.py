@@ -61,7 +61,7 @@ class Settings:
                 }
             },
             "storage": {
-                "module": ["FileStorage", "MongoDB", "SQLite"]
+                "module": ["FileStorage", "MongoStorage"]
             }
         }
     }
@@ -118,7 +118,7 @@ class Settings:
             settings = cls.default_config
             for _ in pattern.split("|"):
                 settings = search_pattern(settings, _)
-        finally:
+        except KeyError:
             settings = default
 
         return settings
