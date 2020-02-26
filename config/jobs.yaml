@@ -10,6 +10,6 @@ jobs:
 #  #
 #  # Tmall Crawler Settings
   task_tmall: !include jobs.d/async.d/task_tmall.yaml
-#  #
-#  # Eastmoney Crawler Settings
-#  task_eastmoney: !include jobs.d/async.d/task_eastmoney.yaml
+  #
+  # Eastmoney Crawler Settings
+  task_eastmoney: !include jobs.d/async.d/task_eastmoney.yaml

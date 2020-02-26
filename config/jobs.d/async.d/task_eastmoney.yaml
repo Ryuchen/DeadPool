@@ -1,11 +1,15 @@
-module: "async"
-storage:
-  module: "FileStorage"
-  collection: ""
-keyword:
-  - "大豆"
-  - "玉米"
+class: "TaskEastmoney"
+module: "asynch"
 options:
+  login:
+    enable: false
+    nickname: 'nickname'
+    username: 'username'
+    password: 'password'
   proxy: true
-  username: 'username'
-  password: 'password'
+  storage:
+    module: "MongoStorage"
+    collection: ""
+  keyword:
+    - "大豆"
+    - "玉米"

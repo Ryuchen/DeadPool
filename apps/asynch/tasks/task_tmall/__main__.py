@@ -53,31 +53,7 @@ class TaskTmall(BaseTask):
     '''
 
     def __init__(self):
-        self.browser = None
-        self.wait = None
-
-        self.module = None
-        self.storage = ""
-        self.proxy = self.options.get("proxy", False)
-        self.nickname = self.options.get("nickname", False)
-        self.username = self.options.get("username", False)
-        self.password = self.options.get("password", False)
-        self.targets = []
-
-        storage_module = self.options.get("storage", {}).get("module", "FileStorage")
-        if storage_module == "FileStorage":
-            from common.plugins.storage.filestorage import FileStorage
-            # 按配置加载的存储模块实例
-            self.module = FileStorage(self.name, self.options.get("storage", {}).get("path", ""))
-            # 存储的位置
-            self.storage = self.module.storage
-        else:
-            from common.plugins.storage.mongostorage import MongoStorage
-            # 按配置加载的存储模块实例
-            self.module = MongoStorage(self.name, self.options.get("storage", {}).get("collection", ""))
-            # 存储的位置
-            self.storage = self.module.storage
-
+        super(TaskTmall, self).__init__()
         # # 创建用于爬取记录的sqlite数据库
         # if not os.path.exists(os.path.join('/tmp', '{}-records.db'.format(self.name))):
         #     self.conn = SQLiteDao(os.path.join('/tmp', '{}-records.db'.format(self.name)))
@@ -87,17 +63,6 @@ class TaskTmall(BaseTask):
         #         self.conn.insert_execute(sql)
         # else:
         #     self.conn = SQLiteDao(os.path.join('/tmp', '{}-records.db'.format(self.name)))
-
-    def setup(self):
-        options = webdriver.ChromeOptions()
-        # 2 不加载图片 | 1 加载图片
-        options.add_experimental_option("prefs", {"profile.managed_default_content_settings.images": 1})
-        # 设置为开发者模式，防止被各大网站识别出来使用了Selenium
-        options.add_experimental_option('excludeSwitches', ['enable-automation'])
-
-        self.browser = webdriver.Chrome(executable_path=Settings.search_config("settings|driver"), options=options)
-        self.browser.maximize_window()  # 设置窗口最大化
-        self.wait = WebDriverWait(self.browser, 10)  # 设置一个智能等待为10秒
 
     def login(self):
         self.browser.get(self.login_url)
@@ -133,8 +98,9 @@ class TaskTmall(BaseTask):
         pass
 
     def run(self, *args, **kwargs):
-        self.setup()
-        self.login()
+        self.browser, self.wait = self.setup()
+        if self.need_login:
+            self.login()
         self.browser.get(self.target_url)
 
         # TODO: 如何判断网页是否加载完成

@@ -8,8 +8,10 @@
 # @Desc : 
 # ==================================================
 
+
 class SetupException(Exception):
     pass
+
 
 class CrawlException(Exception):
     pass

@@ -144,7 +144,7 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 ```
 - - -
-#### 运行说明
+#### 查看状态
 
 ```shell script
 

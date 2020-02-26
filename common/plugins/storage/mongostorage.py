@@ -8,6 +8,7 @@
 # @Desc : 
 # ==================================================
 
+
 class MongoStorage:
 
     def __init__(self, task, collection):
