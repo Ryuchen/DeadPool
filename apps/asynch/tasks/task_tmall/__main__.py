@@ -18,10 +18,15 @@ import traceback
 from celery import chain
 
 from pyquery import PyQuery as pq
+
+from selenium import webdriver
+from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.common.by import By
 
 from apps.asynch.base import BaseTask
+
+from common.settings import Settings
 from common.sqlitedao import SQLiteDao
 from common.exceptions import CrawlException
 
@@ -48,11 +53,15 @@ class TaskTmall(BaseTask):
     '''
 
     def __init__(self):
-        super(TaskTmall, self).__init__()
+        self.browser = None
+        self.wait = None
+
+        self.module = None
+        self.storage = ""
         self.proxy = self.options.get("proxy", False)
-        self.nickname = self.options.get("proxy", False)
-        self.username = self.options.get("proxy", False)
-        self.password = self.options.get("proxy", False)
+        self.nickname = self.options.get("nickname", False)
+        self.username = self.options.get("username", False)
+        self.password = self.options.get("password", False)
         self.targets = []
 
         storage_module = self.options.get("storage", {}).get("module", "FileStorage")
@@ -78,6 +87,17 @@ class TaskTmall(BaseTask):
         #         self.conn.insert_execute(sql)
         # else:
         #     self.conn = SQLiteDao(os.path.join('/tmp', '{}-records.db'.format(self.name)))
+
+    def setup(self):
+        options = webdriver.ChromeOptions()
+        # 2 不加载图片 | 1 加载图片
+        options.add_experimental_option("prefs", {"profile.managed_default_content_settings.images": 1})
+        # 设置为开发者模式，防止被各大网站识别出来使用了Selenium
+        options.add_experimental_option('excludeSwitches', ['enable-automation'])
+
+        self.browser = webdriver.Chrome(executable_path=Settings.search_config("settings|driver"), options=options)
+        self.browser.maximize_window()  # 设置窗口最大化
+        self.wait = WebDriverWait(self.browser, 10)  # 设置一个智能等待为10秒
 
     def login(self):
         self.browser.get(self.login_url)
@@ -113,6 +133,7 @@ class TaskTmall(BaseTask):
         pass
 
     def run(self, *args, **kwargs):
+        self.setup()
         self.login()
         self.browser.get(self.target_url)
 

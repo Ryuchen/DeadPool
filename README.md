@@ -112,15 +112,44 @@
     └── __init__.py
 ```
 
-### 📖 运行说明:
+### 📖 使用说明:
 
-```shell
+#### 安装说明
 
+```shell script
+
+# 目前只在 windows 环境下使用过该项目，其他平台的待测试~~
 # 安装环境依赖
 pip install -r requirements.txt
 
+```
+- - -
+#### 运行说明
+
+```shell script
+
+# 在一个 shell 中执行该脚本
 # 启动项目
-celery -A deadpool worker -l info
+celery -A deadpool flower worker -l info -P eventlet -E
+
+# 另一个 shell 中执行该脚本
+celery -A deadpool shell
+
+# 在出现的Python编辑窗口中输入如下命令调用任务
+Python 3.7.6 (tags/v3.7.6:43364a7ae0, Dec 19 2019, 00:42:30) [MSC v.1916 64 bit (AMD64)] on win32
+Type "help", "copyright", "credits" or "license" for more information.
+(InteractiveConsole)
+>>> from celery.execute import send_task
+>>> send_task('task_tmall')
+
+```
+- - -
+#### 运行说明
+
+```shell script
+
+# 同时可以在 浏览器中检测任务运行状态
+https://localhost:5555
 
 ```
 
