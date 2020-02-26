@@ -66,7 +66,7 @@ class BaseTask(Task):
         options.add_argument('--headless')  # 无窗口话
         self.browser = webdriver.Chrome(executable_path=Settings.search_config("settings|driver"), options=options)
         # self.browser.maximize_window()  # 设置窗口最大化
-        self.wait = WebDriverWait(self.browser, 2)  # 设置一个智能等待为2秒
+        self.wait = WebDriverWait(self.browser, 5)  # 设置一个智能等待为2秒
 
     # 登录
     def login(self):
@@ -80,6 +80,22 @@ class BaseTask(Task):
     def resume(self):
         """
         if the crawler jobs support to resume from break point, use this function to read last break point.
+        :return:
+        """
+        raise NotImplementedError
+
+    # 向前一页
+    def prev(self):
+        """
+        load the browser to the prev page of the current page.
+        :return:
+        """
+        raise NotImplementedError
+
+    # 向后一页
+    def next(self):
+        """
+        load the browser to the next page of the current page.
         :return:
         """
         raise NotImplementedError

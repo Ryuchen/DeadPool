@@ -33,7 +33,7 @@ class MysqlBase(object):
 
         database = Settings.search_config("connection|mysql|database", "deadpool")
 
-        if { username, password } != { "username", "password" }:
+        if {username, password} != {"username", "password"}:
             dsn_string = dsn_string.format(username, password, host, port, database)
         else:
             raise SetupException("You must setup properly MySQL username && password!")

@@ -18,11 +18,11 @@ def pipeline(info, name, options):
         # 按配置加载的存储模块实例
         from common.plugins.storage.filestorage import FileStorage
         # 存储的磁盘地址
-        storage = FileStorage(name, options.get("path", "")).storage
+        storage = FileStorage(name, options.get("path", ""))
     else:
         # 按配置加载的存储模块实例
         from common.plugins.storage.mongostorage import MongoStorage
         # 存储的Collection
-        storage = MongoStorage(name, options.get("collection", "")).storage
+        storage = MongoStorage(name, options.get("collection", ""))
 
-    print(info)
+    storage.add_one(info)
