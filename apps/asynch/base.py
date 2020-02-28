@@ -52,6 +52,10 @@ class BaseTask(Task):
         # Web browser default value
         self.browser, self.wait = None, None
 
+    @classmethod
+    def register(cls, app):
+        cls.bind(app)
+
     # 配置
     def setup(self):
         """

@@ -13,5 +13,6 @@ celerybeat-schedule
 .DS_Store
 *.pyc
 celerybeat-schedule.db
+celerybeat-schedule.*
 
 logs/

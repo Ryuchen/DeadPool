@@ -10,11 +10,14 @@
 from celery.utils.log import get_logger
 
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, scoped_session
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.exc import SQLAlchemyError
 
 from common.settings import Settings
 from common.singleton import singleton
 from common.exceptions import SetupException
+
+from .tables.base import Base
 
 log = get_logger(__name__)
 
@@ -46,8 +49,10 @@ class MysqlBase(object):
         # Connection timeout.
         self.engine.pool_timeout = Settings.search_config("connection|mysql|timeout", 60)
 
+        self.create_tables()
+
         # Get db session.
-        self.Session = scoped_session(sessionmaker(bind=self.engine))
+        self.Session = sessionmaker(bind=self.engine)
 
     def _connect_database(self, connection_string):
         """Connect to a Database.
@@ -58,3 +63,10 @@ class MysqlBase(object):
         except ImportError as e:
             lib = e.message.split()[-1]
             raise ImportError("Missing database driver by import %s (install with 'pip install %s')" % (lib, lib))
+
+    def create_tables(self):
+        """ Create tables."""
+        try:
+            Base.metadata.create_all(self.engine)
+        except SQLAlchemyError as e:
+            raise SetupException("Unable to create database: {0}".format(e))

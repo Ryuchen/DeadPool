@@ -1,8 +1,12 @@
 class: "TaskProxy"
 module: "periodic"
 options:
+  # set 0 proxy address will not expire
+  # Or will force expire current proxy pool in current expire setting (s)
+  expire: 600
   pool:
-    - "https://www.xicidaili.com/"
-  maximum: 60
-  minimum: 10
+    maximum: 60
+    minimum: 10
+  concurrent: 5
+  # the job schedule time (min)
   crontab: "5"

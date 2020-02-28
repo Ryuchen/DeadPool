@@ -231,7 +231,7 @@ pip install -r requirements.txt
 
 # 在一个 shell 中执行该脚本
 # 启动项目
-celery -A deadpool flower worker -l info -P eventlet -E
+celery -A deadpool flower worker -l info -P gevent -E
 
 # 另一个 shell 中执行该脚本
 celery -A deadpool shell
@@ -242,6 +242,13 @@ Type "help", "copyright", "credits" or "license" for more information.
 (InteractiveConsole)
 >>> from celery.execute import send_task
 >>> send_task('task_tmall')
+
+# 定时任务启动
+# on windows
+celery -A deadpool beat
+
+# or on linux 可以跟上面的主启动脚本一起使用
+celery -A deadpool flower worker -B -l info -P gevent -E
 
 ```
 - - -

@@ -1,13 +1,13 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # ==================================================
-# @Time : 2020/2/25-16:05
+# @Time : 2020/2/28-15:37
 # @Author : Ryuchen
 # @Site : https://ryuchen.github.io
-# @File : __init__.py
+# @File : base
 # @Desc : 
 # ==================================================
 
-from .__main__ import TaskProxy
+from sqlalchemy.ext.declarative import declarative_base
 
-__all__ = ["TaskProxy"]
+Base = declarative_base()

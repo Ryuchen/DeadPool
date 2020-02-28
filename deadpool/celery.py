@@ -89,6 +89,7 @@ def setup_celery_tasks(sender, **kwargs):
             ip_module = importlib.import_module(module_path)
             ip_module_class = getattr(ip_module, task_option.get("class"))
             ip_module_class.options = task_option.get("options")
+            ip_module_class.register(app)
             task_instance = ip_module_class()
             sender.register_task(task_instance)
             log.debug("successes load job task on deadpool app at on_after_configure.connect")

@@ -1,5 +1,11 @@
+class: "TaskCookie"
 module: "periodic"
 options:
+  # set 0 cookie will not expire
+  # Or will force expire current cookie in current expire setting (s)
   expire: 600
-  maximum: 20
+  pool:
+    maximum: 60
+    minimum: 10
+  # the job schedule time
   crontab: "*"
