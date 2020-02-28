@@ -75,7 +75,7 @@ def setup_initialise(sender, **kwargs):
             "elastic": ElasticBase().Session
         }
         setattr(sender, "_session_pool", _session_pool)
-        log.debug("successes load backend session pool on deadpool app at on_configure.connect")
+        log.info("successes load backend session pool on deadpool app at on_configure.connect")
     except Exception as e:
         log.error(e)
 
@@ -92,7 +92,7 @@ def setup_celery_tasks(sender, **kwargs):
             ip_module_class.register(app)
             task_instance = ip_module_class()
             sender.register_task(task_instance)
-            log.debug("successes load job task on deadpool app at on_after_configure.connect")
+            log.info("successes load job task on deadpool app at on_after_configure.connect")
         except Exception as e:
             log.exception(e)
 

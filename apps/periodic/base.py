@@ -28,7 +28,7 @@ class BaseTask(Task):
 
     @classmethod
     def register(cls, app):
-        cls.run_every = crontab(minute=cls.options.get("crontab", "10"))
+        cls.run_every = crontab(minute=cls.options.get("crontab", "*/5"))
         app.conf.beat_schedule[cls.__name__] = {
             'task': cls.name,
             'schedule': cls.run_every,
@@ -41,19 +41,19 @@ class BaseTask(Task):
     @property
     def rc_session(self):
         if self._rc_session is None:
-            self._rc_session = self.app._session_pool.get("redis")()
+            self._rc_session = self._app._session_pool.get("redis")
         return self._rc_session
 
     @property
     def db_session(self):
         if self._db_session is None:
-            self._db_session = self.app._session_pool.get("mysql")()
-        return self._db_session
+            self._db_session = self._app._session_pool.get("mysql")
+        return self._db_session()
 
     @property
     def es_session(self):
         if self._es_session is None:
-            self._es_session = self.app._session_pool.get("elastic")()
+            self._es_session = self._app._session_pool.get("elastic")
         return self._es_session
 
     def run(self, *args, **kwargs):

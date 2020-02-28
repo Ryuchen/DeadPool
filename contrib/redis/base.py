@@ -29,7 +29,7 @@ class RedisBase(object):
         redis_usr = Settings.search_config("connection|redis|username", "username")
         redis_pwd = Settings.search_config("connection|redis|password", "password")
 
-        if { redis_usr, redis_pwd } != { "username", "password" }:
+        if {redis_usr, redis_pwd} != {"username", "password"}:
             redis_setting.update({
                 "username": redis_usr,
                 "password": redis_pwd
