@@ -58,9 +58,7 @@ app.conf.update(
     result_serializer="json",
     accept_content=['json'],
     result_expires=3600,
-    worker_concurrency=1,
-    worker_max_tasks_per_child=1,
-    worker_prefetch_multiplier=1,
+    worker_concurrency=4
 )
 
 

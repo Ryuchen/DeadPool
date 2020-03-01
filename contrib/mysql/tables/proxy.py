@@ -8,10 +8,12 @@
 # @Desc : 
 # ==================================================
 import ujson
+import datetime
 
 from sqlalchemy import String
 from sqlalchemy import Column
 from sqlalchemy import Integer
+from sqlalchemy import DateTime
 
 from .base import Base
 
@@ -25,6 +27,8 @@ class Proxy(Base):
     port = Column(Integer, index=True)
     proto = Column(String(12), index=True)
     ping = Column(Integer, index=True)
+    used_at = Column(DateTime, index=True)
+    insert_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
 
     def __repr__(self):
         return "<Proxy('{0}://{1}:{2}')>".format(self.proto, self.host, self.port)

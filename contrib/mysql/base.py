@@ -18,6 +18,7 @@ from common.singleton import singleton
 from common.exceptions import SetupException
 
 from .tables.base import Base
+from .tables import *
 
 log = get_logger(__name__)
 

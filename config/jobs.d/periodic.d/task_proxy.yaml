@@ -9,4 +9,4 @@ options:
     minimum: 10
   concurrent: 5
   # the job schedule time (min)
-  crontab: "*/2"
+  crontab: "*"

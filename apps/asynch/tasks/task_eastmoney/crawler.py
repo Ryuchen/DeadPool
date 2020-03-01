@@ -14,12 +14,16 @@ from celery.utils.log import get_task_logger
 
 from deadpool.celery import app
 
+
 logger = get_task_logger(__name__)
 
 
 @app.task
-def crawler(target, useragent):
-    # cookies = kwargs.get('cookies')
+def crawler(**kwargs):
+    cookies = kwargs.get('cookies')
+    target = kwargs.get('target')
+    useragent = kwargs.get('useragent')
+    proxy = kwargs.get('proxy', None)
 
     if not target or not useragent:
         return False
@@ -27,9 +31,13 @@ def crawler(target, useragent):
     headers = {
         "User-Agent": useragent
     }
-    session = requests.session()
-    req = session.get(target, headers=headers)
-    # req = session.get(target, headers=headers, cookies=cookies)
+
+    if proxy:
+        proxies = {"http": proxy, "https": proxy}
+        req = requests.get(target, headers=headers, proxies=proxies, verify=False)
+    else:
+        req = requests.get(target, headers=headers, verify=False)
+
     soup = BeautifulSoup(req.text, 'html.parser')
     body = soup.find("div", class_="newsContent")
     return str(body)

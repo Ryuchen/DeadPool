@@ -97,6 +97,9 @@ class TaskTmall(BaseTask):
         # self.targets = self.conn.select_execute("SELECT * from RECORDS where STAGE is not 'finish' order by ID")
         pass
 
+    def proxy(self):
+        pass
+
     def run(self, *args, **kwargs):
         self.browser, self.wait = self.setup()
         if self.need_login:

@@ -21,10 +21,12 @@ class MongoStorage:
         username = Settings.search_config("connection|mongodb|username", "username")
         password = Settings.search_config("connection|mongodb|password", "password")
 
-        if {username, password} != {"username", "password"}:
+        if username != "username" and password != "password":
             dsn_string = "mongodb://{0}:{1}@{2}:{3}".format(username, password, host, port)
         else:
             dsn_string = "mongodb://{0}:{1}".format(host, port)
+
+        print(dsn_string)
 
         self.client = MongoClient(dsn_string)
 

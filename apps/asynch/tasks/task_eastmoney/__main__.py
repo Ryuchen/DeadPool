@@ -8,6 +8,7 @@
 # @Desc : 
 # ==================================================
 import os
+import time
 
 from bs4 import BeautifulSoup
 
@@ -30,7 +31,7 @@ class TaskEastmoney(BaseTask):
 
     def __init__(self):
         super(TaskEastmoney, self).__init__()
-        self.current_page = 2020
+        self.current_page = 1
 
     def login(self):
         pass
@@ -73,23 +74,27 @@ class TaskEastmoney(BaseTask):
 
             bs4source = BeautifulSoup(self.browser.page_source, 'html.parser')
 
-            # Get the pages total news count
-            # 东方财富网的新闻统计不准确
-            # total_count = bs4source.find("div", class_="search-result").find("div", class_="count").string
-            # total_count = int(total_count.replace(",", "")[5:-1])
-
             # 查看是否存在下一页按钮
             while bs4source.find("li", string="下一页"):
+                # Each page we use one proxy address for our task: for example
+                # of course you can use proxy address for each target.
+                if self.use_proxy:
+                    kwargs = {"proxy": self.proxy()}
                 # search all news item at current page
                 news_items = bs4source.find_all("div", class_="news-item")
                 for item in news_items:
                     item_news_href = item.find("div", class_="link").get_text()
-                    kwargs = {
-                        "useragent": user_agent,
-                        "target": item_news_href,
-                    }
-                    chain = crawler.s(**kwargs) | middleware.s() | pipeline.s(self.name, self.storage_opt)
-                    chain()
+                    # 财经新闻 and 期货新闻
+                    if item_news_href.startswith("http://finance.eastmoney.com") or \
+                            item_news_href.startswith("http://futures.eastmoney.com/"):
+                        kwargs.update({
+                            "useragent": user_agent,
+                            "target": item_news_href,
+                        })
+                        chain = crawler.s(**kwargs) | middleware.s() | pipeline.s(self.name, self.storage_opt)
+                        chain()
+                        time.sleep(1)
                 # save all current page items goto next page (here to reduce the frequency because i'm using my laptop)
                 self.next()
+                self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.module-news-list > .news-item')))
                 bs4source = BeautifulSoup(self.browser.page_source, 'html.parser')

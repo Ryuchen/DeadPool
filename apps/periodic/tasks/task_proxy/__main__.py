@@ -7,14 +7,16 @@
 # @File : __main__.py
 # @Desc : 
 # ==================================================
-import ujson
-import gevent
+import json
+import eventlet
 import requests
 
-from gevent.pool import Pool
+from sqlalchemy import exc
 
 from apps.periodic.base import BaseTask
 from contrib.mysql.tables.proxy import Proxy
+
+eventlet.import_patched('requests')
 
 
 class TaskProxy(BaseTask):
@@ -26,37 +28,39 @@ class TaskProxy(BaseTask):
     def __init__(self):
         # 50 is your pool size
         self.concurrent = int(self.options.get("concurrent", 5))
-        self.geventpool = Pool(self.concurrent)
+        self.greenpool = eventlet.GreenPool(size=self.concurrent)
 
     def fetch(self, params):
         try:
-            from gevent import monkey
-            monkey.patch_socket()  # 引入猴子补丁
-            response = requests.get(url=self.upstream, params=params, timeout=5.0)
-            return response.content
-        except requests.exceptions.ReadTimeout:
+            response = requests.get(self.upstream, params)
+            return response.json()
+        except json.decoder.JSONDecodeError:
             return {}
+
+    def insert_proxy(self, proxy):
+        try:
+            self.db_session.add(proxy)
+            self.db_session.commit()
+        except exc.IntegrityError:
+            self.db_session.rollback()
 
     def run(self, *args, **kwargs):
         template = {
-            "isp": "联通",  # 网络服务商
+            # "isp": "联通",  # 网络服务商
             "country": "中国",  # IP address 所属国家
             "order_by": "created_at",  # speed:响应速度, validated_at:最新校验时间, created_at:存活时间
             "order_rule": "ASC"  # DESC:降序 ASC:升序
         }
-        tasks = [self.geventpool.spawn(self.fetch, {**{"page": page}, **template}) for page in range(1, self.concurrent + 1)]
-        results = gevent.joinall(tasks)
-        for _ in results:
+        results = self.greenpool.imap(self.fetch, [{**{"page": page}, **template} for page in range(1, self.concurrent + 1)])
+        self.greenpool.waitall()
+        for message in results:
             try:
-                message = ujson.loads(_.value)
                 for _ in message.get('data', {}).get("data", []):
                     uid = _.get('unique_id', '')
                     ping = _.get('speed', 8)
                     host = _.get('ip', '')
                     port = _.get('port', 0)
                     proto = _.get('protocol', 'http')
-                    proxy = Proxy(uid, host, port, proto, ping)
-                    self.db_session.add(proxy)
-                    self.db_session.commit()
-            except ValueError:
+                    self.insert_proxy(Proxy(uid, host, port, proto, ping))
+            except (ValueError, TypeError):
                 pass

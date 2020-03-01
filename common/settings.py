@@ -44,6 +44,12 @@ class Settings:
                 "password": "password",
                 "timeout": 60
             },
+            "mongodb": {
+                "host": "127.0.0.1",
+                "port": 27017,
+                "username": "username",
+                "password": "password",
+            },
             "elasticsearch": {
                 "host": "127.0.0.1",
                 "port": 9200,

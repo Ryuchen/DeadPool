@@ -7,13 +7,16 @@
 # @File : base.py
 # @Desc : 
 # ==================================================
+import datetime
 
 from celery import Task
 
+from sqlalchemy import exc
 from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 
 from common.settings import Settings
+from contrib.mysql.tables import Proxy
 
 
 class BaseTask(Task):
@@ -41,7 +44,7 @@ class BaseTask(Task):
         """#####  login params section ####"""
 
         # Proxy section
-        self.proxy = self.options.get("proxy", False)
+        self.use_proxy = self.options.get("proxy", False)
 
         # Storage section
         self.storage_opt = self.options.get("storage", {"module": "FileStorage", "path": ""})
@@ -103,6 +106,26 @@ class BaseTask(Task):
         :return:
         """
         raise NotImplementedError
+
+    # 获取代理
+    def proxy(self):
+        """
+        By default it will use the author define proxy database, you can overwrite it in each task.
+        get a valuable ip proxy address for crawler pages
+        :return:
+        """
+        session = self._app._session_pool.get("mysql")()
+        try:
+            result = session.query(Proxy).order_by(Proxy.used_at.asc()).with_for_update().first()
+            # this row is now locked
+            result.used_at = datetime.datetime.utcnow()
+            session.add(result)
+            session.commit()
+            # this row is now unlocked
+            return "{0}://{1}:{2}".format(result.proto, result.host, result.port)
+        except exc.ProgrammingError:
+            session.rollback()
+            return ""
 
     # 爬取目标数据
     def run(self, *args, **kwargs):

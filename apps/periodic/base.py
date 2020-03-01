@@ -47,8 +47,8 @@ class BaseTask(Task):
     @property
     def db_session(self):
         if self._db_session is None:
-            self._db_session = self._app._session_pool.get("mysql")
-        return self._db_session()
+            self._db_session = self._app._session_pool.get("mysql")()
+        return self._db_session
 
     @property
     def es_session(self):
