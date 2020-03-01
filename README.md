@@ -1,6 +1,6 @@
 <h1 align="center">Welcome to DeadPool</h1>
 <p align="center">
-  <img src="https://img.shields.io/badge/version-v0.2-red.svg?cacheSeconds=2592000"  alt="version"/>
+  <img src="https://img.shields.io/badge/version-beta-red.svg?cacheSeconds=2592000"  alt="version"/>
   <img src="https://img.shields.io/badge/language-python3-blue.svg?cacheSeconds=2592000"  alt="language"/>
   <img src="https://img.shields.io/badge/platform-linux-blue.svg?cacheSeconds=2592000"  alt="platform"/>
   <a href="http://www.gnu.org/licenses/gpl-3.0.html">
@@ -23,16 +23,59 @@
 
 鉴于上述原因，我构建了这个项目，希望能够帮助自己深入理解和熟练使用 celery 的强大功能。
 
-### 🔥 设计特性:
+### 🔥 设计说明:
 
-#### 任务模块的划分
+#### 任务模块
 
----
+apps中注册的任务，可以通过 [jobs.yaml](http://example.com/ "Develop Asynch Jobs") 配置文件的 include 机制，动态支持任务加载和取消
+
+具体可以参考如下:
+
+```yaml
+
+# Base Tasks Router Settings
+# Task name
+jobs:
+  #
+  # Proxy Pool Settings
+  task_proxy: !include jobs.d/periodic.d/task_proxy.yaml
+  #
+  # Cookie Pool Settings
+  # task_cookie: !include jobs.d/periodic.d/task_cookie.yaml
+  #
+  # Tmall Crawler Settings
+  # task_tmall: !include jobs.d/async.d/task_tmall.yaml
+  #
+  # Eastmoney Crawler Settings
+  task_eastmoney: !include jobs.d/async.d/task_eastmoney.yaml
+
+```
+
 爬虫任务
 
-> 构建在 apps.asynch.tasks 目录下面，拥有完备的抽象实现逻辑，并且以配置文件的形式进行任务功能的声明
+```
+/
+├── apps/   # 任务目录
+    ├── asynch/   # 异步任务目录（也是该框架运行各种爬虫脚本的主目录）        
+        ├── tasks/
+            ├── task_tmall/    # example for Tmall 商品爬取目录（其他爬取任务跟该目录框架一致）
+                ├── sqlite.sql    # 为了之后中断续爬做准备
+                ├── __init__.py    # 该任务的主程序入口
+                ├── __main__.py    # 该任务的主程序入口
+                ├── crawler.py    # 单一爬取程序
+                ├── middleware.py    # 爬取后的页面处理程序
+                └── pipline.py    # 处理后的信息存储程序
+            └── __init__.py
+        ├── __init__.py
+        └── base.py    # 异步任务的基类，继承了该基类才能被框架正确导入
+```
 
-* 拥有两个样例程序（task_tmall）和（task_eastmoney）
+> 构建在 apps.asynch.tasks 目录下面，拥有完备的抽象实现逻辑，并且以配置文件的形式进行任务功能的声明，具体内容请参见: *如何构建该项目的[爬虫任务](http://example.com/ "Develop Asynch Jobs").*
+
+* 该套代码拥有两个样例程序（task_tmall）和（task_eastmoney）
+* task_eastmoney: 是爬取[东方财富网](http://eastmoney.com)的关于指定关键词的财经和期货新闻
+* task_tmall: 是爬取[天猫](https://tmalll.com)的商家详情页面中的买家评价信息
+
 * 每个任务包含四个主要部分
   * __main__.py 主爬虫的入口程序，根据配置文件构建代码执行逻辑
   * crawler.py 单个主体的爬虫程序利用 requests 请求页面进行预处理
@@ -40,6 +83,8 @@
   * pipeline.py 将清洗后的结果按照配置文件存储到指定地方
 * 能够实现爬取过程的断点续爬功能（TODO）
   * sqlite.sql 数据脚本文件创建 sqlite3 小数据库作为爬取记录
+  
+配置文件(样例)
 
 ```yaml
 # 需要进行引入的类的名称
@@ -61,26 +106,76 @@ options:
   # 启用的存储模块声明
   storage:
     module: "MongoStorage"
-    collection: ""  # 模块启用为 “FileStorage” 时，该配置为 path
+    collection: ""
   # 爬取时的关键字
   keyword:
     - "大豆"
-    - "玉米"
 ```
 
 ---
 
 周期任务
 
-> 构建在 apps.periodic.tasks 目录下面，利用celery的周期任务特性，完成周期性任务的执行
+```
+/
+├── apps/   # 任务目录
+    │── periodic/   # 定时任务目录（该框架的通用脚本目录）
+        ├── tasks/  
+            ├── task_cookie/   # 周期检查请求的 cookie 是否可用 （TODO）
+                ├── __init__.py
+                └── __main__.py
+            ├── task_proxy/   # 周期性更新代理池中的IP地址
+                ├── __init__.py
+                └── __main__.py
+            └── __init__.py
+        ├── __init__.py
+        └── base.py    # 定时任务的基类，继承了该基类才能被框架正确导入
+```
 
-* 拥有两个样例程序（task_proxy）和（task_cookie）(TODO)
-  * task_proxy 构建代理池，周期性检查代理池中任务的状态，维护最低标准的可用IP
-  * task_cookie 构建cookie池，周期性检查当前cookie是否可用，维护最低标准的可用cookie
-  
+> 构建在 apps.periodic.tasks 目录下面，利用celery的周期特性，完成周期性任务的执行，具体内容请参见: *如何构建该项目的[周期任务](http://example.com/ "Develop Periodic Jobs").*
+
+* 该套代码拥有两个样例程序（task_cookie）(TODO) 和（task_proxy）
+* task_proxy: 构建代理池，周期性检查代理池中任务的状态，维护最低标准的可用IP
+* task_cookie: 构建cookie池，周期性检查当前cookie是否可用，维护最低标准的可用cookie
+
+配置文件(样例)
+
+```yaml
+# 需要进行引入的类的名称
+class: "TaskProxy"
+# 任务所在的类别
+module: "periodic"
+# 配置
+options:
+  # set 0 proxy address will not force expire
+  # Or will force expire current proxy pool in current expire setting (s)
+  expire: 600
+  pool:
+    maximum: 60
+    minimum: 10
+  concurrent: 5
+  # the job schedule time (min)
+  crontab: "*"
+```
+
 ---
 
 插件模块
+
+```
+/
+├── common/   # 通用库
+    ├── plugins/   # 通用解析插件库
+        ├── human/   # 模拟真人操作的库
+            ├── slider.py   # 模拟真人浏览页面操作
+            ├── verification.py   # 反爬验证程序操作
+            └── __init__.py
+        ├── storage/   # 爬取结果存储的库
+            ├── filestorage.py   # 文件形式本地存储
+            ├── mongostorage.py   # mongodb存储
+            └── __init__.py
+        └── __init__.py
+```
 
 > 构建在 common.plugins 集成了常见的反爬机制识别、人为操作模拟和存储系统支持
 
@@ -98,30 +193,9 @@ options:
 > 为了尽可能的拓展支持的平台和项目的灵活性，而加入的功能
 
 * 根据运行平台自动加载相对应的chromediver文件
-* 通过配置文件的include，动态支持任务加载和取消
+* 通过配置文件的 include 机制，动态支持任务加载和取消
+* 通过 elasticsearch 记录任务运行中的完整过程（TODO）
 
-```yaml
-
-# 在jobs.yaml中通过以下方式进行任务的开启关闭
-
-# Base Tasks Router Settings
-# Task name
-jobs:
-  #
-  # Proxy Pool Settings
-  task_proxy: !include jobs.d/periodic.d/task_proxy.yaml
-  #
-  # Cookie Pool Settings
-  # task_cookie: !include jobs.d/periodic.d/task_cookie.yaml
-  #
-  # Tmall Crawler Settings
-  # task_tmall: !include jobs.d/async.d/task_tmall.yaml
-  #
-  # Eastmoney Crawler Settings
-  task_eastmoney: !include jobs.d/async.d/task_eastmoney.yaml
-
-```
-  
 ### 👌 代码说明：
 
 ```
@@ -141,8 +215,12 @@ jobs:
         └── base.py    # 异步任务的基类，继承了该基类才能被框架正确导入
     │── periodic/   # 定时任务目录（该框架的通用脚本目录）
         ├── tasks/  
-            ├── task_cookie   # 周期性更新请求的cookie （TODO）
-            ├── task_proxy   # 周期性更新代理池中的IP地址 （TODO）
+            ├── task_cookie/   # 周期检查请求的 cookie 是否可用 （TODO）
+                ├── __init__.py
+                └── __main__.py
+            ├── task_proxy/   # 周期性更新代理池中的IP地址
+                ├── __init__.py
+                └── __main__.py
             └── __init__.py
         ├── __init__.py
         └── base.py    # 定时任务的基类，继承了该基类才能被框架正确导入
@@ -210,30 +288,160 @@ jobs:
 
 ### 📖 使用说明:
 
+#### 环境搭建
+
+该项目最终将适配 全平台运行（macOS，Windows，Linux），但是目前尚处于beta版本的开发，以下说明均为在 Windows 下的开发说明
+
 开发环境
+
 * Windows 10 (Version 2004) WSL2 Ubuntu-18.04
 * 运行环境依赖 redis/mysql/mongodb/elasticsearch
-* 选装 rabbitmq 和 kibana
+* 选装 kibana
 
-#### 安装说明
+#### 依赖安装
+
+首先是 celery 运行需要依赖 redis 作为 broker 和 backend
 
 ```shell script
 
-# 目前只在 windows 环境下使用过该项目，其他平台的待测试~~
+*WSL2 Ubuntu Bash*
+
+sudo apt update && apt upgrade
+sudo apt install redis-server
+```
+
+然后是用于存储代理地址的 mysql
+
+```shell script
+
+*WSL2 Ubuntu Bash*
+
+# clean the default mysql && mariadb
+sudo apt remove --purge *mysql*
+sudo rm -rf /etc/mysql /var/lib/mysql
+sudo apt remove --purge *mariadb*
+sudo apt autoremove
+sudo apt autoclean
+
+wget –c https://dev.mysql.com/get/mysql-apt-config_0.8.15-1_all.deb
+sudo dpkg -i mysql-apt-config_0.8.15-1_all.deb # select 8.0
+
+sudo apt update
+sudo apt policy mysql-server #(it will show 8.0 is the default candidate)
+
+sudo apt install mysql-server
+
+```
+
+之后是用于存储爬取的文本内容的 mongodb
+
+
+```shell script
+
+*WSL2 Ubuntu Bash*
+
+wget -qO - https://www.mongodb.org/static/pgp/server-4.2.asc | sudo apt-key add -
+
+echo "deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu bionic/mongodb-org/4.2 multiverse" | sudo tee /etc/apt/sources.list.d/mongodb-org-4.2.list
+
+sudo apt update
+
+sudo apt install -y mongodb-org
+
+```
+
+最后是用来保存运行日志使用的 elasticsearch && kibana (选装)
+
+```shell script
+
+*WSL2 Ubuntu Bash*
+
+wget -qO - https://artifacts.elastic.co/GPG-KEY-elasticsearch | sudo apt-key add -
+
+sudo apt-get install apt-transport-https
+
+echo "deb https://artifacts.elastic.co/packages/oss-7.x/apt stable main" | sudo tee -a /etc/apt/sources.list.d/elastic-7.x.list 
+
+sudo apt update
+
+sudo apt install -y elasticsearch-oss kibana-oss
+
+```
+
+完成上述依赖安装之后请自行修改和记住相应配置，修改其配置文件到 127.0.0.1:xxxx 对应端口上
+
+然后利用如下工具在 WSL2 下启动 systemctl 功能进行上述软件的开启
+
+[genie](https://github.com/arkane-systems/genie) A quick way into a systemd "bottle" for WSL
+
+```shell script
+
+*WSL2 Ubuntu Bash*
+
+sudo apt install systemd-genie
+
+echo -e "alias systemctl='genie -c systemctl'" > ~/.bash_aliase
+
+```
+
+如果上述有什么不对的地方，请在issue提出
+
+#### 安装说明
+
+然后在 Windows 上安装 [Visual Studio Community](https://visualstudio.microsoft.com/zh-hans/vs/community/) && [Python 3.7.6](https://www.python.org/downloads/)
+
+记得 VS Community 勾选 Build Tools && Python 勾选 for all user
+
+然后进入你 clone 本代码的目录
+
+```shell script
+
+*Windows Powershell*
+# Run as Administrator
+
+pip install -U pip
+
+pip install virtualenv
+
+virtualenv venv
+
+.\venv\Scripts\activate
+
 # 安装环境依赖
 pip install -r requirements.txt
 
 ```
-- - -
+
+---
+
 #### 运行说明
+
+启动项目
 
 ```shell script
 
-# 在一个 shell 中执行该脚本
-# 启动项目
-celery -A deadpool flower worker -l info -P gevent -E
+*Windows Powershell*
 
-# 另一个 shell 中执行该脚本
+celery -A deadpool worker -l info -P eventlet -E
+
+```
+
+Beat worker
+
+```shell script
+
+*Windows Powershell*
+
+celery -A deadpool beat
+
+```
+
+调用任务
+
+```shell script
+
+*Windows Powershell*
+
 celery -A deadpool shell
 
 # 在出现的Python编辑窗口中输入如下命令调用任务
@@ -241,25 +449,20 @@ Python 3.7.6 (tags/v3.7.6:43364a7ae0, Dec 19 2019, 00:42:30) [MSC v.1916 64 bit 
 Type "help", "copyright", "credits" or "license" for more information.
 (InteractiveConsole)
 >>> from celery.execute import send_task
->>> send_task('task_tmall')
-
-# 定时任务启动
-# on windows
-celery -A deadpool beat
-
-# or on linux 可以跟上面的主启动脚本一起使用
-celery -A deadpool flower worker -B -l info -P gevent -E
+>>> send_task('eastmoney')
 
 ```
-- - -
-#### 查看状态
+
+监控任务
 
 ```shell script
 
-# 同时可以在 浏览器中检测任务运行状态
-https://localhost:5555
+celery -A deadpool flower
 
 ```
+
+同时可以在 浏览器中检测任务运行状态
+https://localhost:5555
 
 ### 👤 作者介绍:
 
