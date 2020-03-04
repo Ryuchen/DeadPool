@@ -438,7 +438,7 @@ celery -A deadpool beat
 
 ```
 
-![周期任务启动](https://raw.githubusercontent.com/Ryuchen/DeadPool/master/doc/img/beat-start.jpg)
+![周期任务启动](https://raw.githubusercontent.com/Ryuchen/DeadPool/master/doc/img/beat-start.png)
 
 调用任务
 
@@ -476,9 +476,15 @@ https://localhost:5555
 
 #### 结果样例
 
+<p align="center">爬取页面内容</p>
+
 ![爬取任务](https://raw.githubusercontent.com/Ryuchen/DeadPool/master/doc/img/eg-crawler.jpg)
 
+<p align="center">页面内容提取</p>
+
 ![提取任务](https://raw.githubusercontent.com/Ryuchen/DeadPool/master/doc/img/eg-middleware.jpg)
+
+<p align="center">提取信息存储</p>
 
 ![存储任务](https://raw.githubusercontent.com/Ryuchen/DeadPool/master/doc/img/eg-pipeline.jpg)
 
