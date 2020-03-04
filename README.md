@@ -496,5 +496,3 @@ This project is [GPL](http://www.gnu.org/licenses/gpl-3.0.html) licensed.
 
 ***
 [![Release](https://img.shields.io/github/release/Ryuchen/DeadPool?color=blue)](https://github.com/Ryuchen/DeadPool/releases) [![Contributors](https://img.shields.io/github/contributors/Ryuchen/DeadPool?color=blue)](https://github.com/Ryuchen/DeadPool/graphs/contributors) [![Last commit](https://img.shields.io/github/last-commit/Ryuchen/DeadPool?color=blue)](https://github.com/Ryuchen/DeadPool/commits/master)
-
-_This README was generated with ❤️ by [readme-md-generator](https://github.com/kefranabg/readme-md-generator)_
