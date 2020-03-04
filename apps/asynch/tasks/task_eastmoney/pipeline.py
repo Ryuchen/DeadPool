@@ -25,5 +25,5 @@ def pipeline(info, name, options):
         # 存储的Collection
         storage = MongoStorage(name, options.get("collection", ""))
 
-    print(info)
-    storage.add_one(info)
+    if info:
+        storage.add_one(info)

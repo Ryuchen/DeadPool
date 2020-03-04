@@ -6,7 +6,7 @@ options:
     nickname: 'nickname'
     username: 'username'
     password: 'password'
-  proxy: true
+  proxy: false
   storage:
     module: "MongoStorage"
     collection: ""
