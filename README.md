@@ -426,6 +426,8 @@ celery -A deadpool worker -l info -P eventlet -E
 
 ```
 
+![主程序启动](https://raw.githubusercontent.com/Ryuchen/DeadPool/master/doc/img/main-start.jpg)
+
 Beat worker
 
 ```shell script
@@ -435,6 +437,8 @@ Beat worker
 celery -A deadpool beat
 
 ```
+
+![周期任务启动](https://raw.githubusercontent.com/Ryuchen/DeadPool/master/doc/img/beat-start.jpg)
 
 调用任务
 
@@ -453,6 +457,8 @@ Type "help", "copyright", "credits" or "license" for more information.
 
 ```
 
+![异步任务启动](https://raw.githubusercontent.com/Ryuchen/DeadPool/master/doc/img/task-start.jpg)
+
 监控任务
 
 ```shell script
@@ -463,6 +469,18 @@ celery -A deadpool flower
 
 同时可以在 浏览器中检测任务运行状态
 https://localhost:5555
+
+
+---
+
+
+#### 结果样例
+
+![爬取任务](https://raw.githubusercontent.com/Ryuchen/DeadPool/master/doc/img/eg-crawler.jpg)
+
+![提取任务](https://raw.githubusercontent.com/Ryuchen/DeadPool/master/doc/img/eg-middleware.jpg)
+
+![存储任务](https://raw.githubusercontent.com/Ryuchen/DeadPool/master/doc/img/eg-pipeline.jpg)
 
 ### 👤 作者介绍:
 
