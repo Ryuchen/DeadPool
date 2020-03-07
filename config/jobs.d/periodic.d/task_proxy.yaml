@@ -7,6 +7,6 @@ options:
   pool:
     maximum: 60
     minimum: 10
-  concurrent: 5
+  source: "kuaidaili"
   # the job schedule time (min)
   crontab: "*"

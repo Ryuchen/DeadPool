@@ -10,13 +10,9 @@
 import os
 import sys
 import logging
-import datetime
 import importlib
 
 from celery import Celery
-from celery.signals import task_prerun
-from celery.signals import task_success
-from celery.signals import task_failure
 
 from common.settings import Settings
 from contrib.redis.base import RedisBase
@@ -93,28 +89,6 @@ def setup_celery_tasks(sender, **kwargs):
             log.info("successes load job task on deadpool app at on_after_configure.connect")
         except Exception as e:
             log.exception(e)
-
-
-# When celery start the task, we need to tell it the last time running status.
-# @task_prerun.connect
-# def search_agg_task_log(signal, sender, *args, **kwargs):
-#     # This is to set this time running clock(super precision)
-#     running_time = datetime.datetime.now().replace(second=0, microsecond=0)
-#     sender.request.kwargs = {
-#         "datetime": running_time
-#     }
-#
-#
-# @task_success.connect
-# def insert_agg_task_log(signal, sender, result, *args, **kwargs):
-#     # Get last running time
-#     log.info("signals received: %s" % sender.name)
-#
-#
-# @task_failure.connect
-# def record_agg_task_log(signal, sender, **kwargs):
-#     # Get last running time
-#     log.info("signals received: %s" % sender.name)
 
 
 if __name__ == '__main__':
