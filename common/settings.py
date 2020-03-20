@@ -19,6 +19,7 @@ _current_dir = os.path.abspath(os.path.dirname(__file__))
 RESULT_ROOT = os.path.normpath(os.path.join(_current_dir, "..", "result"))
 CONFIG_ROOT = os.path.normpath(os.path.join(_current_dir, "..", "config"))
 
+
 class Settings:
     """
     This function to protect the custom setting config does not influence the program successfully start up.
