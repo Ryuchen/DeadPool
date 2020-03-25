@@ -2,7 +2,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/version-beta-red.svg?cacheSeconds=2592000"  alt="version"/>
   <img src="https://img.shields.io/badge/language-python3-blue.svg?cacheSeconds=2592000"  alt="language"/>
-  <img src="https://img.shields.io/badge/platform-linux-blue.svg?cacheSeconds=2592000"  alt="platform"/>
+  <img src="https://img.shields.io/badge/platform-windows-blue.svg?cacheSeconds=2592000"  alt="platform"/>
   <a href="http://www.gnu.org/licenses/gpl-3.0.html">
     <img alt="License: GPL" src="https://img.shields.io/badge/License-GPL-yellow.svg"/>
   </a>
@@ -10,7 +10,9 @@
 
 该项目是一个使用celery作为主体框架的爬虫应用(希望后期能够写成大型的爬虫项目框架)，灵感源自目前在学校进行的知识图谱的科研项目，主要用于该项目的网上文本数据采集工作。
 
-### 🏠 [个人小栈](https://ryuchen.github.io/)
+### 🏠 个人小栈
+
+  [我的个人博客地址: https://ryuchen.club/](https://ryuchen.github.io/)
 
   > 如果你觉得这个项目不错，想要深入了解，可以关注上面的个人小栈，未来更新的说明会刊登在这里，并且会不定时分享部分内容和心得
 
@@ -51,7 +53,9 @@ jobs:
 
 ```
 
-爬虫任务
+<details>
+
+<summary>爬虫任务(点击展开)</summary>
 
 ```
 /
@@ -111,6 +115,10 @@ options:
   keyword:
     - "大豆"
 ```
+
+</details>
+
+
 
 ---
 
@@ -453,7 +461,7 @@ Python 3.7.6 (tags/v3.7.6:43364a7ae0, Dec 19 2019, 00:42:30) [MSC v.1916 64 bit 
 Type "help", "copyright", "credits" or "license" for more information.
 (InteractiveConsole)
 >>> from celery.execute import send_task
->>> send_task('eastmoney')
+>>> send_task('task_eastmoney')
 
 ```
 

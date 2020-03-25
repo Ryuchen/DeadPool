@@ -11,4 +11,4 @@ options:
     module: "MongoStorage"
     collection: ""
   keyword:
-    - "大豆"
+    - "原油"
