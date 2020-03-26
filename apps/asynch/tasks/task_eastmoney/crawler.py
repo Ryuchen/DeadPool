@@ -38,6 +38,7 @@ def crawler(**kwargs):
     else:
         req = requests.get(target, headers=headers, verify=False)
 
+    req.encoding = 'utf-8'
     soup = BeautifulSoup(req.text, 'html.parser')
     body = soup.find("div", class_="newsContent")
     return str(body)
