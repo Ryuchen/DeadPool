@@ -12,7 +12,11 @@ from deadpool.celery import app
 
 
 @app.task
-def pipeline(info, name, options):
+def pipeline(info, **kwargs):
+    options = kwargs.get('storage')
+    name = kwargs.get('name')
+    doc_type = kwargs.get('doc_type')
+
     # 负责将抽取后的信息进行存储的模块
     if options.get("module", "FileStorage") == "FileStorage":
         # 按配置加载的存储模块实例
@@ -26,4 +30,4 @@ def pipeline(info, name, options):
         storage = MongoStorage(name, options.get("collection", ""))
 
     if info:
-        storage.add_one(info)
+        storage.add_one(collection=doc_type, document=info)

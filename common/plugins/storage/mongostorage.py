@@ -26,8 +26,6 @@ class MongoStorage:
         else:
             dsn_string = "mongodb://{0}:{1}".format(host, port)
 
-        print(dsn_string)
-
         self.client = MongoClient(dsn_string)
 
         if not collection:
@@ -36,10 +34,10 @@ class MongoStorage:
         else:
             self.db = self.client[collection]
 
-    def add_one(self, document):
+    def add_one(self, collection, document):
         """ 新增数据 """
-        return self.db.students.insert_one(document)
+        return self.db[collection].insert_one(document)
 
-    def add_many(self, documents):
+    def add_many(self, collection, documents):
         """ 新增多条数据 """
-        return self.db.students.insert_many(documents)
+        return self.db[collection].insert_many(documents)

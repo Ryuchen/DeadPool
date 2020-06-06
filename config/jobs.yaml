@@ -3,7 +3,7 @@
 jobs:
   #
   # Proxy Pool Settings
-  task_proxy: !include jobs.d/periodic.d/task_proxy.yaml
+#  task_proxy: !include jobs.d/periodic.d/task_proxy.yaml
 #  #
 #  # Cookie Pool Settings
 #  task_cookie: !include jobs.d/periodic.d/task_cookie.yaml

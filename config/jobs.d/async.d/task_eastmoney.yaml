@@ -9,6 +9,6 @@ options:
   proxy: false
   storage:
     module: "MongoStorage"
-    collection: ""
+    collection: "eastmoney"
   keyword:
     - "原油"

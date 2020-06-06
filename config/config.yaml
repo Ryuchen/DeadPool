@@ -20,7 +20,7 @@ connection:
     port: 3306
     database: "deadpool"
     username: "root"
-    password: "chenhaom199377"
+    password: "password"
     timeout: 60
   mongodb:
     host: "127.0.0.1"

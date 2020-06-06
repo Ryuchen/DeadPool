@@ -32,6 +32,21 @@ class TaskEastmoney(BaseTask):
     def __init__(self):
         super(TaskEastmoney, self).__init__()
         self.current_page = 1
+        # 目前已知的东方财富网的新闻类型
+        # http://finance.eastmoney.com 财经新闻
+        # http://futures.eastmoney.com 期货新闻
+        # http://global.eastmoney.com 全球新闻
+        # http://forex.eastmoney.com 外汇新闻
+        # http://stock.eastmoney.com 股票新闻
+        # http://fund.eastmoney.com 基金新闻
+        self.types = {
+            "http://finance.eastmoney.com": "finance",
+            "http://futures.eastmoney.com": "futures",
+            "http://global.eastmoney.com": "global",
+            "http://forex.eastmoney.com": "forex",
+            "http://stock.eastmoney.com": "stock",
+            "http://fund.eastmoney.com": "fund"
+        }
 
     def login(self):
         pass
@@ -84,16 +99,20 @@ class TaskEastmoney(BaseTask):
                 news_items = bs4source.find_all("div", class_="news-item")
                 for item in news_items:
                     item_news_href = item.find("div", class_="link").get_text()
-                    # 财经新闻 and 期货新闻
-                    if item_news_href.startswith("http://finance.eastmoney.com") or \
-                            item_news_href.startswith("http://futures.eastmoney.com/"):
-                        kwargs.update({
-                            "useragent": user_agent,
-                            "target": item_news_href,
-                        })
-                        chain = crawler.s(**kwargs) | middleware.s() | pipeline.s(self.name, self.storage_opt)
-                        chain()
-                        time.sleep(1)
+                    for key, value in self.types.items():
+                        if item_news_href.startswith(key):
+                            kwargs.update({
+                                "useragent": user_agent,
+                                "doc_type": value,
+                                "target": item_news_href,
+                                "name": self.name,
+                                "storage": self.storage_opt
+                            })
+                            chain = crawler.s(**kwargs) | middleware.s(**kwargs) | pipeline.s(**kwargs)
+                            chain()
+                            time.sleep(1)
+                        else:
+                            print(item_news_href)
                 # save all current page items goto next page (here to reduce the frequency because i'm using my laptop)
                 self.next()
                 self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.module-news-list > .news-item')))

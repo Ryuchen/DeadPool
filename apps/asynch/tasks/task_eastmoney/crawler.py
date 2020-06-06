@@ -20,10 +20,13 @@ logger = get_task_logger(__name__)
 
 @app.task
 def crawler(**kwargs):
+    # config options
     cookies = kwargs.get('cookies')
-    target = kwargs.get('target')
-    useragent = kwargs.get('useragent')
     proxy = kwargs.get('proxy', None)
+    # passing options
+    useragent = kwargs.get('useragent')
+    doc_type = kwargs.get('doc_type')
+    target = kwargs.get('target')
 
     if not target or not useragent:
         return False
