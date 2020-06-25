@@ -46,6 +46,9 @@ class BaseTask(Task):
         # Proxy section
         self.use_proxy = self.options.get("proxy", False)
 
+        # Resume section
+        self.use_resume = self.options.get("resume", False)
+
         # Storage section
         self.storage_opt = self.options.get("storage", {"module": "FileStorage", "path": ""})
 

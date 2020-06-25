@@ -11,11 +11,14 @@ import os
 import time
 
 from bs4 import BeautifulSoup
+from pybloom_live import ScalableBloomFilter
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 
 from apps.asynch.base import BaseTask
+from common.sqlitedao import SQLiteDao
+from common.settings import RESULT_ROOT
 
 from .crawler import crawler
 from .middleware import middleware
@@ -47,12 +50,23 @@ class TaskEastmoney(BaseTask):
             "http://stock.eastmoney.com": "stock",
             "http://fund.eastmoney.com": "fund"
         }
+        self.bloomfilter = ScalableBloomFilter(
+            initial_capacity=10000,
+            error_rate=0.001,
+            mode=ScalableBloomFilter.LARGE_SET_GROWTH
+        )
+        self.sqlite = SQLiteDao(os.path.join(RESULT_ROOT, f"{self.name}.db3"))
 
     def login(self):
         pass
 
     def resume(self):
-        pass
+        create_sql = "create table if not exists eastmoney(id integer primary key autoincrement, source varchar(512))"
+        self.sqlite.create(create_sql)
+        select_sql = "select source from eastmoney"
+        rows = self.sqlite.select_execute(select_sql)
+        for row in rows:
+            self.bloomfilter.add(row["source"])
 
     def prev(self):
         prev_button = self.wait.until(EC.presence_of_element_located(
@@ -72,6 +86,11 @@ class TaskEastmoney(BaseTask):
         # for whether login on this website
         if self.need_login:
             self.login()
+
+        # for whether resume last crawl status
+        if self.use_resume:
+            self.resume()
+
         # navigate to the target url
         self.browser.get(self.target_url)
 
@@ -99,20 +118,23 @@ class TaskEastmoney(BaseTask):
                 news_items = bs4source.find_all("div", class_="news-item")
                 for item in news_items:
                     item_news_href = item.find("div", class_="link").get_text()
-                    for key, value in self.types.items():
-                        if item_news_href.startswith(key):
-                            kwargs.update({
-                                "useragent": user_agent,
-                                "doc_type": value,
-                                "target": item_news_href,
-                                "name": self.name,
-                                "storage": self.storage_opt
-                            })
-                            chain = crawler.s(**kwargs) | middleware.s(**kwargs) | pipeline.s(**kwargs)
-                            chain()
-                            time.sleep(1)
-                        else:
-                            print(item_news_href)
+                    if os.path.basename(item_news_href) not in self.bloomfilter:
+                        for key, value in self.types.items():
+                            if item_news_href.startswith(key):
+                                kwargs.update({
+                                    "useragent": user_agent,
+                                    "doc_type": value,
+                                    "target": item_news_href,
+                                    "name": self.name,
+                                    "storage": self.storage_opt
+                                })
+                                chain = crawler.s(**kwargs) | middleware.s(**kwargs) | pipeline.s(**kwargs)
+                                chain()
+                                insert_sql = "insert into eastmoney(source) values ('" + os.path.basename(item_news_href) + "')"
+                                self.sqlite.insert_execute(insert_sql)
+                                time.sleep(1)
+                            else:
+                                print(item_news_href)
                 # save all current page items goto next page (here to reduce the frequency because i'm using my laptop)
                 self.next()
                 self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.module-news-list > .news-item')))

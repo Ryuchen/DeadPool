@@ -9,6 +9,9 @@
 # ==================================================
 import os
 import sys
+import glob
+import hanlp
+import pkuseg
 import logging
 import importlib
 
@@ -61,8 +64,8 @@ app.conf.update(
 # When celery start to initialise need to load multiple database session to context.
 @app.on_configure.connect
 def setup_initialise(sender, **kwargs):
+    # Initialise storage session connection
     try:
-        # Initialise share session connection
         _session_pool = {
             "redis": RedisBase().Session,
             "mysql": MysqlBase().Session,
@@ -70,6 +73,59 @@ def setup_initialise(sender, **kwargs):
         }
         setattr(sender, "_session_pool", _session_pool)
         log.info("successes load backend session pool on deadpool app at on_configure.connect")
+    except Exception as e:
+        log.error(e)
+
+    # Initialise HanLP process pipelines
+    try:
+        tokenizer = hanlp.load('CTB6_CONVSEG')
+        tagger = hanlp.load('CTB5_POS_RNN_FASTTEXT_ZH')
+        syntactic_parser = hanlp.load('CTB7_BIAFFINE_DEP_ZH')
+        semantic_parser = hanlp.load('SEMEVAL16_TEXT_BIAFFINE_ZH')
+        _hanlp_pipeline = hanlp.pipeline() \
+            .append(hanlp.utils.rules.split_sentence, output_key='sentences') \
+            .append(tokenizer, output_key='tokens') \
+            .append(tagger, output_key='part_of_speech_tags') \
+            .append(syntactic_parser, input_key=('tokens', 'part_of_speech_tags'), output_key='syntactic_dependencies', conll=False) \
+            .append(semantic_parser, input_key=('tokens', 'part_of_speech_tags'), output_key='semantic_dependencies', conll=False)
+        setattr(sender, "_hanlp_pipeline", _hanlp_pipeline)
+        log.info("successes load hanlp process pipeline on deadpool app at on_configure.connect")
+    except Exception as e:
+        log.error(e)
+
+    # Initialise HanLP NER recognizer model
+    try:
+        # 加载模型
+        _hanlp_ner_recognizer = hanlp.load(hanlp.pretrained.ner.MSRA_NER_BERT_BASE_ZH)
+        setattr(sender, "_hanlp_ner_recognizer", _hanlp_ner_recognizer)
+        log.info("successes load hanlp NER recognizer model on deadpool app at on_configure.connect")
+    except Exception as e:
+        log.error(e)
+
+    # Initialise pkuseg token segmentation toolkit
+    try:
+        # 加载模型
+        _pkuseg_toolkit = pkuseg.pkuseg(user_dict=os.path.join(cur_dir, "data", "custom", 'pkuseg_user_dict.txt'), postag=True)
+        setattr(sender, "_pkuseg_toolkit", _pkuseg_toolkit)
+        log.info("successes load PKUseg token segmentation toolkit on deadpool app at on_configure.connect")
+    except Exception as e:
+        log.error(e)
+
+    # Initialise stopwords for segmentation usage
+    try:
+        # cn_stopwords.txt    中文常用停用词
+        # hit_stopwords.txt   哈工大停用词
+        # scu_stopwords.txt   四川大学机器智能实验室停用词
+        # baidu_stopwords.txt 百度停用词
+        stopwords = []
+        data_sets = glob.glob(os.path.join(cur_dir, 'data', 'stopwords', '*.txt'))
+        for item in data_sets:
+            with open(item, encoding="utf-8") as f:
+                for line in f:
+                    stopwords.append(line.strip())
+        _stopwords = list(set(stopwords))
+        setattr(sender, "_stopwords", _stopwords)
+        log.info("successes load stopwords for segmentation usage on deadpool app at on_configure.connect")
     except Exception as e:
         log.error(e)
 

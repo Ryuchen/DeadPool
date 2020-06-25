@@ -7,8 +7,11 @@
 # @File : pipline
 # @Desc : 
 # ==================================================
+import os
 
 from deadpool.celery import app
+from common.sqlitedao import SQLiteDao
+from common.settings import RESULT_ROOT
 
 
 @app.task
@@ -31,3 +34,5 @@ def pipeline(info, **kwargs):
 
     if info:
         storage.add_one(collection=doc_type, document=info)
+
+

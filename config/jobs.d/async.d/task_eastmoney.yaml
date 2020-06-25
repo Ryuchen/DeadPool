@@ -7,6 +7,7 @@ options:
     username: 'username'
     password: 'password'
   proxy: false
+  resume: ture
   storage:
     module: "MongoStorage"
     collection: "eastmoney"

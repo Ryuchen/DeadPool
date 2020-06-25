@@ -4,8 +4,8 @@
 # @Time : 2020/2/28-15:28
 # @Author : Ryuchen
 # @Site : https://ryuchen.github.io
-# @File : proxy
-# @Desc : 
+# @File : cookie
+# @Desc :
 # ==================================================
 import ujson
 import datetime
@@ -18,19 +18,18 @@ from sqlalchemy import DateTime
 from .base import Base
 
 
-class Proxy(Base):
-    __tablename__ = "proxy"
+class Cookie(Base):
+    __tablename__ = "cookie"
 
     uid = Column(String(64), primary_key=True, nullable=False, index=True)
-    host = Column(String(24), index=True)
-    port = Column(Integer, index=True)
-    proto = Column(String(12), index=True)
-    ping = Column(Integer, index=True)
+    jobs = Column(String(24), index=True)
+    types = Column(Integer, index=True)
+    valid = Column(Integer, index=True)
     used_at = Column(DateTime, index=True)
     insert_at = Column(DateTime, default=datetime.datetime.utcnow, index=True)
 
     def __repr__(self):
-        return "<Proxy('{0}://{1}:{2}')>".format(self.proto, self.host, self.port)
+        return "<Cookie('{0}://{1}:{2}')>".format(self.jobs, self.types, self.valid)
 
     def to_dict(self):
         """Converts object to dict.
@@ -47,9 +46,8 @@ class Proxy(Base):
         """
         return ujson.dumps(self.to_dict())
 
-    def __init__(self, uid, host, port, proto, ping):
+    def __init__(self, uid, jobs, types, valid):
         self.uid = uid
-        self.host = host
-        self.port = port
-        self.proto = proto
-        self.ping = ping
+        self.jobs = jobs
+        self.types = types
+        self.valid = valid
