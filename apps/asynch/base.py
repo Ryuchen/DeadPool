@@ -74,6 +74,8 @@ class BaseTask(Task):
         # 设置为开发者模式，防止被各大网站识别出来使用了Selenium
         options.add_experimental_option('excludeSwitches', ['enable-automation'])
         options.add_argument('--headless')  # 无窗口话
+        options.add_argument('--no-sandbox')  # 让Chrome在root权限下跑
+        options.add_argument('--disable-dev-shm-usage')
         self.browser = webdriver.Chrome(executable_path=Settings.search_config("settings|driver"), options=options)
         # self.browser.maximize_window()  # 设置窗口最大化
         self.wait = WebDriverWait(self.browser, 5)  # 设置一个智能等待为2秒

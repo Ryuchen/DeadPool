@@ -10,6 +10,7 @@
 import os
 import time
 
+from urllib import parse
 from bs4 import BeautifulSoup
 from pybloom_live import ScalableBloomFilter
 
@@ -43,12 +44,12 @@ class TaskEastmoney(BaseTask):
         # http://stock.eastmoney.com 股票新闻
         # http://fund.eastmoney.com 基金新闻
         self.types = {
-            "http://finance.eastmoney.com": "finance",
-            "http://futures.eastmoney.com": "futures",
-            "http://global.eastmoney.com": "global",
-            "http://forex.eastmoney.com": "forex",
-            "http://stock.eastmoney.com": "stock",
-            "http://fund.eastmoney.com": "fund"
+            "finance.eastmoney.com": "finance",
+            "futures.eastmoney.com": "futures",
+            "global.eastmoney.com": "global",
+            "forex.eastmoney.com": "forex",
+            "stock.eastmoney.com": "stock",
+            "fund.eastmoney.com": "fund"
         }
         self.bloomfilter = ScalableBloomFilter(
             initial_capacity=10000,
@@ -65,8 +66,9 @@ class TaskEastmoney(BaseTask):
         self.sqlite.create(create_sql)
         select_sql = "select source from eastmoney"
         rows = self.sqlite.select_execute(select_sql)
-        for row in rows:
-            self.bloomfilter.add(row["source"])
+        if rows:
+            for row in rows:
+                self.bloomfilter.add(row["source"])
 
     def prev(self):
         prev_button = self.wait.until(EC.presence_of_element_located(
@@ -119,23 +121,27 @@ class TaskEastmoney(BaseTask):
                 for item in news_items:
                     item_news_href = item.find("div", class_="link").get_text()
                     if os.path.basename(item_news_href) not in self.bloomfilter:
-                        for key, value in self.types.items():
-                            if item_news_href.startswith(key):
-                                kwargs.update({
-                                    "useragent": user_agent,
-                                    "doc_type": value,
-                                    "target": item_news_href,
-                                    "name": self.name,
-                                    "storage": self.storage_opt
-                                })
-                                chain = crawler.s(**kwargs) | middleware.s(**kwargs) | pipeline.s(**kwargs)
-                                chain()
-                                insert_sql = "insert into eastmoney(source) values ('" + os.path.basename(item_news_href) + "')"
-                                self.sqlite.insert_execute(insert_sql)
-                                time.sleep(1)
-                            else:
-                                print(item_news_href)
+                        parser_result = parse.urlparse(item_news_href)
+                        if parser_result.netloc in self.types.keys():
+                            kwargs.update({
+                                "useragent": user_agent,
+                                "doc_type": self.types[parser_result.netloc],
+                                "target": item_news_href,
+                                "name": self.name,
+                                "storage": self.storage_opt
+                            })
+                            chain = crawler.s(**kwargs) | middleware.s(**kwargs) | pipeline.s(**kwargs)
+                            chain()
+                            insert_sql = "insert into eastmoney(source) values ('" + os.path.basename(item_news_href) + "')"
+                            self.sqlite.insert_execute(insert_sql)
+                            time.sleep(1)
+                        else:
+                            print(f"没有确定类型的URL: {item_news_href}")
+                    else:
+                        print(f"已经爬取过的URL: {item_news_href}")
+                    time.sleep(1)
                 # save all current page items goto next page (here to reduce the frequency because i'm using my laptop)
                 self.next()
                 self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.module-news-list > .news-item')))
                 bs4source = BeautifulSoup(self.browser.page_source, 'html.parser')
+                time.sleep(20)

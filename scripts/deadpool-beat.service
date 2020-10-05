@@ -1,0 +1,19 @@
+[Unit]
+Description=Deadpool of Celery Beat Service
+Requires=mariadb.service redis.service mongod.service deadpool.service
+After=mariadb.service deadpool.service network.target
+
+[Service]
+Type=simple
+User=celery
+Group=deadpool
+EnvironmentFile=/etc/deadpool/deadpool
+WorkingDirectory=/opt/spider
+
+ExecStart=/bin/sh -c '${DEADPOOL_BIN} -A ${DEADPOOL_APP} beat  \
+--pidfile=${DEADPOOLBEAT_PID_FILE} \
+--logfile=${DEADPOOLBEAT_LOG_FILE} \
+--loglevel=${DEADPOOLD_LOG_LEVEL}'
+
+[Install]
+WantedBy=multi-user.target

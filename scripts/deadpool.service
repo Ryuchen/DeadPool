@@ -1,1 +1,19 @@
-#!/bin/bash
+[Unit]
+Description=Deadpool of Celery Service
+Requires=mariadb.service redis.service mongod.service
+After=mariadb.service network.target
+
+[Service]
+Type=simple
+User=celery
+Group=deadpool
+EnvironmentFile=/etc/deadpool/deadpool
+WorkingDirectory=/opt/spider
+
+ExecStart=/bin/sh -c '${DEADPOOL_BIN} -A ${DEADPOOL_APP} worker \
+--pidfile=${DEADPOOLD_PID_FILE} \
+--logfile=${DEADPOOLD_LOG_FILE} \
+--loglevel=${DEADPOOLD_LOG_LEVEL} ${DEADPOOLD_OPTS}'
+
+[Install]
+WantedBy=multi-user.target

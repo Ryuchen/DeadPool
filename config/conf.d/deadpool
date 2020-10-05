@@ -1,0 +1,29 @@
+# Name of nodes to start
+# here we have a single node
+DEADPOOLD_NODES="node"
+# or we could have three nodes:
+# DEADPOOLD_NODES="w1 w2 w3"
+
+# Absolute or relative path to the 'celery' command:
+DEADPOOL_BIN="/opt/spider/venv/bin/celery"
+
+# App instance to use
+# comment out this line if you don't use an app
+DEADPOOL_APP="deadpool"
+
+# How to call manage.py
+DEADPOOLD_MULTI="multi"
+
+# Extra command-line arguments to the worker
+DEADPOOLD_OPTS="--concurrency=4"
+
+# - %N will be replaced with the first part of the nodename.
+# - %I will be replaced with the current child process index
+#   and is important when using the prefork pool to avoid race conditions.
+DEADPOOLD_PID_FILE="/var/run/deadpool/node.pid"
+DEADPOOLD_LOG_FILE="/var/log/deadpool/node%I.log"
+DEADPOOLD_LOG_LEVEL="INFO"
+
+# you may wish to add these options for Celery Beat
+DEADPOOLBEAT_PID_FILE="/var/run/deadpool/beat.pid"
+DEADPOOLBEAT_LOG_FILE="/var/log/deadpool/beat.log"

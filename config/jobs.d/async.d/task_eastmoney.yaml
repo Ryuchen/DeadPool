@@ -13,3 +13,6 @@ options:
     collection: "eastmoney"
   keyword:
     - "原油"
+    - "玉米"
+    - "大豆"
+    - "铁矿石"
