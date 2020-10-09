@@ -13,17 +13,22 @@ import time
 from urllib import parse
 from bs4 import BeautifulSoup
 from pybloom_live import ScalableBloomFilter
+from celery.utils.log import get_task_logger
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
 from apps.asynch.base import BaseTask
 from common.sqlitedao import SQLiteDao
 from common.settings import RESULT_ROOT
 
+
 from .crawler import crawler
 from .middleware import middleware
 from .pipeline import pipeline
+
+logger = get_task_logger(__name__)
 
 
 class TaskEastmoney(BaseTask):
@@ -68,7 +73,7 @@ class TaskEastmoney(BaseTask):
         rows = self.sqlite.select_execute(select_sql)
         if rows:
             for row in rows:
-                self.bloomfilter.add(row["source"])
+                self.bloomfilter.add(row[0])
 
     def prev(self):
         prev_button = self.wait.until(EC.presence_of_element_located(
@@ -83,65 +88,71 @@ class TaskEastmoney(BaseTask):
         next_button.click()
 
     def run(self, *args, **kwargs):
-        # for setup website browser driver
-        self.setup()
-        # for whether login on this website
-        if self.need_login:
-            self.login()
+        try:
+            # for setup website browser driver
+            self.setup()
+            # for whether login on this website
+            if self.need_login:
+                self.login()
 
-        # for whether resume last crawl status
-        if self.use_resume:
-            self.resume()
+            # for whether resume last crawl status
+            if self.use_resume:
+                self.resume()
 
-        # navigate to the target url
-        self.browser.get(self.target_url)
+            # navigate to the target url
+            self.browser.get(self.target_url)
 
-        for _ in self.targets:
-            # in eastmoney the time search order is "sortfiled=4"
-            uri = "news/s?keyword={0}&pageindex={1}&sortfiled=4".format(_, self.current_page)
-            self.browser.get(os.path.join(self.target_url, uri))
-            self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.module-news-list > .news-item')))
-
-            # Get the selenium cookies and user-agent for later use
-            # TODO: add the cookie into the task cookie pool as backend update scheduler
-            # cookies = self.browser.get_cookies()
-            # print(cookies)
-            user_agent = self.browser.execute_script("return navigator.userAgent")
-
-            bs4source = BeautifulSoup(self.browser.page_source, 'html.parser')
-
-            # 查看是否存在下一页按钮
-            while bs4source.find("li", string="下一页"):
-                # Each page we use one proxy address for our task: for example
-                # of course you can use proxy address for each target.
-                if self.use_proxy:
-                    kwargs = {"proxy": self.proxy()}
-                # search all news item at current page
-                news_items = bs4source.find_all("div", class_="news-item")
-                for item in news_items:
-                    item_news_href = item.find("div", class_="link").get_text()
-                    if os.path.basename(item_news_href) not in self.bloomfilter:
-                        parser_result = parse.urlparse(item_news_href)
-                        if parser_result.netloc in self.types.keys():
-                            kwargs.update({
-                                "useragent": user_agent,
-                                "doc_type": self.types[parser_result.netloc],
-                                "target": item_news_href,
-                                "name": self.name,
-                                "storage": self.storage_opt
-                            })
-                            chain = crawler.s(**kwargs) | middleware.s(**kwargs) | pipeline.s(**kwargs)
-                            chain()
-                            insert_sql = "insert into eastmoney(source) values ('" + os.path.basename(item_news_href) + "')"
-                            self.sqlite.insert_execute(insert_sql)
-                            time.sleep(1)
-                        else:
-                            print(f"没有确定类型的URL: {item_news_href}")
-                    else:
-                        print(f"已经爬取过的URL: {item_news_href}")
-                    time.sleep(1)
-                # save all current page items goto next page (here to reduce the frequency because i'm using my laptop)
-                self.next()
+            for _ in self.targets:
+                # in eastmoney the time search order is "sortfiled=4"
+                uri = "news/s?keyword={0}&pageindex={1}&sortfiled=4".format(_, self.current_page)
+                self.browser.get(os.path.join(self.target_url, uri))
                 self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.module-news-list > .news-item')))
+
+                # Get the selenium cookies and user-agent for later use
+                # TODO: add the cookie into the task cookie pool as backend update scheduler
+                # cookies = self.browser.get_cookies()
+                # print(cookies)
+                user_agent = self.browser.execute_script("return navigator.userAgent")
+
                 bs4source = BeautifulSoup(self.browser.page_source, 'html.parser')
-                time.sleep(20)
+
+                # 查看是否存在下一页按钮
+                while bs4source.find("li", string="下一页"):
+                    # Each page we use one proxy address for our task: for example
+                    # of course you can use proxy address for each target.
+                    if self.use_proxy:
+                        kwargs = {"proxy": self.proxy()}
+                    # search all news item at current page
+                    news_items = bs4source.find_all("div", class_="news-item")
+                    for item in news_items:
+                        item_news_href = item.find("div", class_="link").get_text()
+                        if os.path.basename(item_news_href) not in self.bloomfilter:
+                            parser_result = parse.urlparse(item_news_href)
+                            if parser_result.netloc in self.types.keys():
+                                kwargs.update({
+                                    "useragent": user_agent,
+                                    "doc_type": self.types[parser_result.netloc],
+                                    "target": item_news_href,
+                                    "name": self.name,
+                                    "storage": self.storage_opt
+                                })
+                                chain = crawler.s(**kwargs) | middleware.s(**kwargs) | pipeline.s(**kwargs)
+                                chain()
+                                insert_sql = "insert into eastmoney(source) values ('" + os.path.basename(item_news_href) + "')"
+                                self.sqlite.insert_execute(insert_sql)
+                                time.sleep(1)
+                            else:
+                                logger.debug(f"没有确定类型的URL: {item_news_href}")
+                        else:
+                            logger.info(f"已经爬取过的URL: {item_news_href}")
+                        time.sleep(1)
+                    # save all current page items goto next page (here to reduce the frequency because i'm using my laptop)
+                    self.next()
+                    self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.module-news-list > .news-item')))
+                    bs4source = BeautifulSoup(self.browser.page_source, 'html.parser')
+                    time.sleep(20)
+        except (TimeoutException, TypeError):
+            response = self.notify(f"[{self.name}]:东方财富网", "**爬取任务暂停了~**")
+            logger.error(f"爬取任务中断【TimeoutException】: {response}")
+        finally:
+            self.browser.execute_script('window.stop()')

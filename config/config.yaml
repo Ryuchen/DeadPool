@@ -49,3 +49,8 @@ settings:
     module:
       - "FileStorage"
       - "MongoStorage"
+  #
+  # ServerChan notify
+  # By default, if the key is not set, will not send notify to wechat
+  serverchan:
+    key: sckey

@@ -16,6 +16,7 @@ from selenium import webdriver
 from selenium.webdriver.support.ui import WebDriverWait
 
 from common.settings import Settings
+from common.plugins.human.notify import ServerChanNotify
 from contrib.mysql.tables import Proxy
 
 
@@ -78,7 +79,7 @@ class BaseTask(Task):
         options.add_argument('--disable-dev-shm-usage')
         self.browser = webdriver.Chrome(executable_path=Settings.search_config("settings|driver"), options=options)
         # self.browser.maximize_window()  # 设置窗口最大化
-        self.wait = WebDriverWait(self.browser, 5)  # 设置一个智能等待为2秒
+        self.wait = WebDriverWait(self.browser, 60)  # 设置一个智能等待为2秒
 
     # 登录
     def login(self):
@@ -131,6 +132,16 @@ class BaseTask(Task):
         except exc.ProgrammingError:
             session.rollback()
             return ""
+
+    # 发送通知
+    @staticmethod
+    def notify(title, message):
+        """
+        :return:
+        """
+        notify = ServerChanNotify()
+        res = notify.push_text(text=f"{title}", desp=message)
+        return res
 
     # 爬取目标数据
     def run(self, *args, **kwargs):

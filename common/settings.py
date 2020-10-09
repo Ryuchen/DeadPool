@@ -69,6 +69,10 @@ class Settings:
             },
             "storage": {
                 "module": ["FileStorage", "MongoStorage"]
+            },
+            "serverchan": {
+                "url": "",
+                "key": ""
             }
         }
     }
