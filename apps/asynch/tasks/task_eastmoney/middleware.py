@@ -35,7 +35,10 @@ def middleware(context, **kwargs):
         # parse the body context which information we need to store.
         news_title = soup.h1.string
         news_post_time = soup.find("div", class_="time").string
-        news_post_source = soup.find("div", class_="source data-source").attrs.get("data-source")
+        if soup.find("div", class_="source data-source"):
+            news_post_source = soup.find("div", class_="source data-source").attrs.get("data-source")
+        else:
+            news_post_source = ""
         news_content = soup.find("div", id="ContentBody").get_text()
 
         # 存放分词结果
