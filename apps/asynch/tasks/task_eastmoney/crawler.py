@@ -10,6 +10,7 @@
 import requests
 
 from bs4 import BeautifulSoup
+from requests import adapters
 from celery.utils.log import get_task_logger
 
 from deadpool.celery import app
@@ -30,6 +31,11 @@ def crawler(jobs, **kwargs):
 
     # pass the selenium user-agent & cookies to request session
     s = requests.Session()
+    # setup pool size due to
+    # https://laike9m.com/blog/requests-secret-pool_connections-and-pool_maxsize,89/
+    a = requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=10, max_retries=3)
+    s.mount('http://', a)
+    s.mount('https://', a)
     s.headers.update({"user-agent": useragent})
     for cookie in cookies:
         s.cookies.set(cookie['name'], cookie['value'], domain=cookie['domain'])

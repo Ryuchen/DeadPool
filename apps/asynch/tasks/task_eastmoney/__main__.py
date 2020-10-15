@@ -150,9 +150,12 @@ class TaskEastmoney(BaseTask):
                     try:
                         # save all current page items goto next page (here to reduce the frequency because i'm using my laptop)
                         bs4source = self.next()
+                        self.current_page += 1
                     except TimeoutException as e:
                         self.notify(f"[{self.name}]", "**Spider task find no targets~**")
                         logger.error(f"爬取任务加载失败【TimeoutException】: {e.stacktrace}")
                         break
                     else:
                         time.sleep(10)
+
+                self.notify(f"[{self.name}]", f"**{_}: {self.current_page}**")
