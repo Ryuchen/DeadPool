@@ -75,3 +75,5 @@ zope.event==4.4
 zope.interface==5.1.0
 hanlp
 pkuseg
+git+https://github.com/jaybaird/python-bloomfilter.git#egg=pybloom
+retry

@@ -11,6 +11,10 @@ from pymongo import MongoClient
 
 from common.settings import Settings
 
+from celery.utils.log import get_task_logger
+
+logger = get_task_logger(__name__)
+
 
 class MongoStorage:
 
@@ -36,8 +40,18 @@ class MongoStorage:
 
     def add_one(self, collection, document):
         """ 新增数据 """
-        return self.db[collection].insert_one(document)
+        try:
+            self.db[collection].insert_one(document)
+            return True
+        except Exception as e:
+            logger.warning("An exception occurred ::", e)
+            return False
 
     def add_many(self, collection, documents):
         """ 新增多条数据 """
-        return self.db[collection].insert_many(documents)
+        try:
+            self.db[collection].insert_many(documents)
+            return True
+        except Exception as e:
+            logger.warning("An exception occurred ::", e)
+            return False

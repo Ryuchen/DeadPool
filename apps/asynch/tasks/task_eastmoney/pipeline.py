@@ -10,15 +10,17 @@
 import os
 
 from deadpool.celery import app
+
 from common.sqlitedao import SQLiteDao
 from common.settings import RESULT_ROOT
 
 
 @app.task
-def pipeline(info, **kwargs):
+def pipeline(infos, **kwargs):
     options = kwargs.get('storage')
     name = kwargs.get('name')
-    doc_type = kwargs.get('doc_type')
+
+    sqlite = SQLiteDao(os.path.join(RESULT_ROOT, f"{name}.db3"))
 
     # 负责将抽取后的信息进行存储的模块
     if options.get("module", "FileStorage") == "FileStorage":
@@ -32,7 +34,8 @@ def pipeline(info, **kwargs):
         # 存储的Collection
         storage = MongoStorage(name, options.get("collection", ""))
 
-    if info:
-        storage.add_one(collection=doc_type, document=info)
-
-
+    if infos:
+        for info in infos:
+            if storage.add_one(collection=info['type'], document=info):
+                insert_sql = "insert into eastmoney(source) values ('" + os.path.basename(info['link']) + "')"
+                sqlite.insert_execute(insert_sql)

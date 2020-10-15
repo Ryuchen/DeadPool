@@ -19,29 +19,45 @@ logger = get_task_logger(__name__)
 
 
 @app.task
-def crawler(**kwargs):
-    # config options
-    cookies = kwargs.get('cookies')
-    proxy = kwargs.get('proxy', None)
-    # passing options
-    useragent = kwargs.get('useragent')
-    doc_type = kwargs.get('doc_type')
-    target = kwargs.get('target')
-
-    if not target or not useragent:
+def crawler(jobs, **kwargs):
+    # the requests targets
+    # if not crawl targets drop this job
+    if not jobs:
         return False
 
-    headers = {
-        "User-Agent": useragent
-    }
+    cookies = kwargs.get('cookies')
+    useragent = kwargs.get('useragent')
 
-    if proxy:
-        proxies = {"http": proxy, "https": proxy}
-        req = requests.get(target, headers=headers, proxies=proxies, verify=False)
-    else:
-        req = requests.get(target, headers=headers, verify=False)
+    # pass the selenium user-agent & cookies to request session
+    s = requests.Session()
+    s.headers.update({"user-agent": useragent})
+    for cookie in cookies:
+        s.cookies.set(cookie['name'], cookie['value'], domain=cookie['domain'])
 
-    req.encoding = 'utf-8'
-    soup = BeautifulSoup(req.text, 'html.parser')
-    body = soup.find("div", class_="newsContent")
-    return str(body)
+    # config options
+    proxy = kwargs.get('proxy', None)
+
+    proxies = {"http": proxy, "https": proxy} if proxy else {}
+
+    results = []
+
+    # due to aliyun server network limit so no use for aiohttp
+    for _ in jobs:
+        try:
+            res = requests.get(_["target"], proxies=proxies, verify=False, timeout=3)
+            res.raise_for_status()
+        except requests.exceptions.HTTPError as errh:
+            logger.warning(f"{_['target']} Http Error:", errh)
+        except requests.exceptions.ConnectionError as errc:
+            logger.warning(f"{_['target']} Error Connecting:", errc)
+        except requests.exceptions.Timeout as errt:
+            logger.warning(f"{_['target']} Timeout Error:", errt)
+        except requests.exceptions.RequestException as err:
+            logger.warning(f"{_['target']} OOps: Something Else", err)
+        else:
+            res.encoding = 'utf-8'
+            soup = BeautifulSoup(res.text, 'html.parser')
+            _['body'] = str(soup.find("div", class_="newsContent"))
+            results.append(_)
+
+    return results

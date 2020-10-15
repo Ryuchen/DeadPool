@@ -12,8 +12,14 @@ import datetime
 from celery import Task
 
 from sqlalchemy import exc
+
 from selenium import webdriver
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait
+
+from retry import retry
+from pybloom import ScalableBloomFilter
 
 from common.settings import Settings
 from common.plugins.human.notify import ServerChanNotify
@@ -38,11 +44,11 @@ class BaseTask(Task):
         login_attr = self.options.get("login", {})
         self.need_login = login_attr.get("enable", False)  # 判断是否需要登录
 
-        """#####  login params section ####"""
+        """#####  login params section #####"""
         self.nickname = login_attr.get("nickname", "nickname")  # 通过此判断是否登录成功
         self.username = login_attr.get("username", "username")
         self.password = login_attr.get("password", "password")
-        """#####  login params section ####"""
+        """#####  login params section #####"""
 
         # Proxy section
         self.use_proxy = self.options.get("proxy", False)
@@ -58,6 +64,13 @@ class BaseTask(Task):
 
         # Web browser default value
         self.browser, self.wait = None, None
+
+        # Resume crawler from stop point
+        self.bloomfilter = ScalableBloomFilter(
+            initial_capacity=1000000,
+            error_rate=0.001,
+            mode=ScalableBloomFilter.SMALL_SET_GROWTH
+        )
 
     @classmethod
     def register(cls, app):
@@ -79,7 +92,8 @@ class BaseTask(Task):
         options.add_argument('--disable-dev-shm-usage')
         self.browser = webdriver.Chrome(executable_path=Settings.search_config("settings|driver"), options=options)
         # self.browser.maximize_window()  # 设置窗口最大化
-        self.wait = WebDriverWait(self.browser, 60)  # 设置一个智能等待为2秒
+        # 显式等待
+        self.wait = WebDriverWait(self.browser, 30)  # 设置一个智能等待为2秒
 
     # 登录
     def login(self):
@@ -90,12 +104,18 @@ class BaseTask(Task):
         raise NotImplementedError
 
     # 断点续爬
-    def resume(self):
+    def resume(self, tname):
         """
         if the crawler jobs support to resume from break point, use this function to read last break point.
         :return:
         """
-        raise NotImplementedError
+        create_sql = f"create table if not exists {tname}(id integer primary key autoincrement, source varchar(512))"
+        self.sqlite.create(create_sql)
+        select_sql = f"select source from {tname}"
+        rows = self.sqlite.select_execute(select_sql)
+        if rows:
+            for row in rows:
+                self.bloomfilter.add(row[0])
 
     # 向前一页
     def prev(self):
@@ -137,11 +157,17 @@ class BaseTask(Task):
     @staticmethod
     def notify(title, message):
         """
+        if the spider running in some conditions then push the message to serverchan
         :return:
         """
         notify = ServerChanNotify()
-        res = notify.push_text(text=f"{title}", desp=message)
-        return res
+        notify.push_text(text=f"{title}", desp=message)
+
+    @retry(TimeoutException, tries=3, delay=1, jitter=1)
+    def fetch(self, url, condition):
+        self.browser.get(url)
+        self.browser.implicitly_wait(10)  # 隐式等待 告诉某些元素不是立即可得的
+        self.wait.until(EC.presence_of_element_located(condition))
 
     # 爬取目标数据
     def run(self, *args, **kwargs):

@@ -10,14 +10,15 @@
 import os
 import time
 
+from retry import retry
 from urllib import parse
 from bs4 import BeautifulSoup
-from pybloom_live import ScalableBloomFilter
 from celery.utils.log import get_task_logger
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
+from selenium.common.exceptions import WebDriverException
 
 from apps.asynch.base import BaseTask
 from common.sqlitedao import SQLiteDao
@@ -56,36 +57,27 @@ class TaskEastmoney(BaseTask):
             "stock.eastmoney.com": "stock",
             "fund.eastmoney.com": "fund"
         }
-        self.bloomfilter = ScalableBloomFilter(
-            initial_capacity=10000,
-            error_rate=0.001,
-            mode=ScalableBloomFilter.LARGE_SET_GROWTH
-        )
         self.sqlite = SQLiteDao(os.path.join(RESULT_ROOT, f"{self.name}.db3"))
 
     def login(self):
         pass
-
-    def resume(self):
-        create_sql = "create table if not exists eastmoney(id integer primary key autoincrement, source varchar(512))"
-        self.sqlite.create(create_sql)
-        select_sql = "select source from eastmoney"
-        rows = self.sqlite.select_execute(select_sql)
-        if rows:
-            for row in rows:
-                self.bloomfilter.add(row[0])
 
     def prev(self):
         prev_button = self.wait.until(EC.presence_of_element_located(
             (By.CSS_SELECTOR, 'div.page-group > ul.clearflaot > li:first-child')
         ))
         prev_button.click()
+        self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.module-news-list > .news-item')))
+        return BeautifulSoup(self.browser.page_source, 'html.parser')
 
+    @retry(TimeoutException, tries=3, delay=1, jitter=1)
     def next(self):
         next_button = self.wait.until(EC.presence_of_element_located(
             (By.CSS_SELECTOR, 'div.page-group > ul.clearflaot > li:last-child')
         ))
         next_button.click()
+        self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.module-news-list > .news-item')))
+        return BeautifulSoup(self.browser.page_source, 'html.parser')
 
     def run(self, *args, **kwargs):
         try:
@@ -97,22 +89,27 @@ class TaskEastmoney(BaseTask):
 
             # for whether resume last crawl status
             if self.use_resume:
-                self.resume()
+                self.resume(tname="eastmoney")
+        except WebDriverException as e:
+            self.notify(f"[{self.name}]", "**Spider task init failed~**")
+            logger.error(f"爬取任务启动失败【WebDriverException】: {e.stacktrace}")
 
-            # navigate to the target url
-            self.browser.get(self.target_url)
+            # 结束任务，将不再继续执行下面的任务
+            return
 
-            for _ in self.targets:
+        for _ in self.targets:
+            try:
                 # in eastmoney the time search order is "sortfiled=4"
                 uri = "news/s?keyword={0}&pageindex={1}&sortfiled=4".format(_, self.current_page)
-                self.browser.get(os.path.join(self.target_url, uri))
-                self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.module-news-list > .news-item')))
-
+                condition = (By.CSS_SELECTOR, '.module-news-list > .news-item')
+                self.fetch(url=os.path.join(self.target_url, uri), condition=condition)
+            except TimeoutException as e:
+                self.notify(f"[{self.name}]", "**Spider task find no targets~**")
+                logger.error(f"爬取任务搜寻失败【TimeoutException】: {e.stacktrace}")
+            else:
                 # Get the selenium cookies and user-agent for later use
-                # TODO: add the cookie into the task cookie pool as backend update scheduler
-                # cookies = self.browser.get_cookies()
-                # print(cookies)
-                user_agent = self.browser.execute_script("return navigator.userAgent")
+                cookies = self.browser.get_cookies()
+                useragent = self.browser.execute_script("return navigator.userAgent")
 
                 bs4source = BeautifulSoup(self.browser.page_source, 'html.parser')
 
@@ -122,37 +119,40 @@ class TaskEastmoney(BaseTask):
                     # of course you can use proxy address for each target.
                     if self.use_proxy:
                         kwargs = {"proxy": self.proxy()}
+
+                    # the common kwargs
+                    kwargs.update({
+                        "cookies": cookies,
+                        "useragent": useragent,
+                        "storage": self.storage_opt,
+                        "name": self.name
+                    })
                     # search all news item at current page
                     news_items = bs4source.find_all("div", class_="news-item")
+
+                    jobs = []
                     for item in news_items:
                         item_news_href = item.find("div", class_="link").get_text()
+                        job = {
+                            "target": item_news_href,
+                        }
                         if os.path.basename(item_news_href) not in self.bloomfilter:
                             parser_result = parse.urlparse(item_news_href)
-                            if parser_result.netloc in self.types.keys():
-                                kwargs.update({
-                                    "useragent": user_agent,
-                                    "doc_type": self.types[parser_result.netloc],
-                                    "target": item_news_href,
-                                    "name": self.name,
-                                    "storage": self.storage_opt
-                                })
-                                chain = crawler.s(**kwargs) | middleware.s(**kwargs) | pipeline.s(**kwargs)
-                                chain()
-                                insert_sql = "insert into eastmoney(source) values ('" + os.path.basename(item_news_href) + "')"
-                                self.sqlite.insert_execute(insert_sql)
-                                time.sleep(1)
-                            else:
-                                logger.debug(f"没有确定类型的URL: {item_news_href}")
+                            job["doc_type"] = self.types[parser_result.netloc] if parser_result.netloc in self.types.keys() else "other"
+                            jobs.append(job)
                         else:
                             logger.info(f"已经爬取过的URL: {item_news_href}")
-                        time.sleep(1)
-                    # save all current page items goto next page (here to reduce the frequency because i'm using my laptop)
-                    self.next()
-                    self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.module-news-list > .news-item')))
-                    bs4source = BeautifulSoup(self.browser.page_source, 'html.parser')
-                    time.sleep(20)
-        except (TimeoutException, TypeError):
-            response = self.notify(f"[{self.name}]:东方财富网", "**爬取任务暂停了~**")
-            logger.error(f"爬取任务中断【TimeoutException】: {response}")
-        finally:
-            self.browser.execute_script('window.stop()')
+
+                    if jobs:
+                        chain = crawler.s(jobs, **kwargs) | middleware.s() | pipeline.s(**kwargs)
+                        chain()
+
+                    try:
+                        # save all current page items goto next page (here to reduce the frequency because i'm using my laptop)
+                        bs4source = self.next()
+                    except TimeoutException as e:
+                        self.notify(f"[{self.name}]", "**Spider task find no targets~**")
+                        logger.error(f"爬取任务加载失败【TimeoutException】: {e.stacktrace}")
+                        break
+                    else:
+                        time.sleep(10)
