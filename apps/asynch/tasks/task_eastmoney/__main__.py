@@ -59,16 +59,18 @@ class TaskEastmoney(BaseTask):
         }
         self.sqlite = SQLiteDao(os.path.join(RESULT_ROOT, f"{self.name}.db3"))
 
+        self.target_done = False  # This is the flag for considering whether the task has finished~
+
     def login(self):
         pass
 
+    @retry(TimeoutException, tries=3, delay=1, jitter=1)
     def prev(self):
         prev_button = self.wait.until(EC.presence_of_element_located(
             (By.CSS_SELECTOR, 'div.page-group > ul.clearflaot > li:first-child')
         ))
         prev_button.click()
         self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.module-news-list > .news-item')))
-        return BeautifulSoup(self.browser.page_source, 'html.parser')
 
     @retry(TimeoutException, tries=3, delay=1, jitter=1)
     def next(self):
@@ -77,7 +79,6 @@ class TaskEastmoney(BaseTask):
         ))
         next_button.click()
         self.wait.until(EC.presence_of_element_located((By.CSS_SELECTOR, '.module-news-list > .news-item')))
-        return BeautifulSoup(self.browser.page_source, 'html.parser')
 
     def run(self, *args, **kwargs):
         try:
@@ -100,7 +101,7 @@ class TaskEastmoney(BaseTask):
         for _ in self.targets:
             try:
                 # in eastmoney the time search order is "sortfiled=4"
-                uri = "news/s?keyword={0}&pageindex={1}&sortfiled=4".format(_, self.current_page)
+                uri = "news/s?keyword={0}&pageindex={1}&searchrange=8192&sortfiled=4".format(_, self.current_page)
                 condition = (By.CSS_SELECTOR, '.module-news-list > .news-item')
                 self.fetch(url=os.path.join(self.target_url, uri), condition=condition)
             except TimeoutException as e:
@@ -111,22 +112,24 @@ class TaskEastmoney(BaseTask):
                 cookies = self.browser.get_cookies()
                 useragent = self.browser.execute_script("return navigator.userAgent")
 
-                bs4source = BeautifulSoup(self.browser.page_source, 'html.parser')
+                # the common kwargs
+                kwargs = {
+                    "cookies": cookies,
+                    "useragent": useragent,
+                    "storage": self.storage_opt,
+                    "name": self.name
+                }
 
-                # 查看是否存在下一页按钮
-                while bs4source.find("li", string="下一页"):
+                while not self.target_done:
+                    bs4source = BeautifulSoup(self.browser.page_source, 'html.parser')
+
                     # Each page we use one proxy address for our task: for example
                     # of course you can use proxy address for each target.
                     if self.use_proxy:
-                        kwargs = {"proxy": self.proxy()}
+                        kwargs.update({
+                            "proxy": self.proxy()
+                        })
 
-                    # the common kwargs
-                    kwargs.update({
-                        "cookies": cookies,
-                        "useragent": useragent,
-                        "storage": self.storage_opt,
-                        "name": self.name
-                    })
                     # search all news item at current page
                     news_items = bs4source.find_all("div", class_="news-item")
 
@@ -147,15 +150,27 @@ class TaskEastmoney(BaseTask):
                         chain = crawler.s(jobs, **kwargs) | middleware.s() | pipeline.s(**kwargs)
                         chain()
 
-                    try:
-                        # save all current page items goto next page (here to reduce the frequency because i'm using my laptop)
-                        bs4source = self.next()
-                        self.current_page += 1
-                    except TimeoutException as e:
-                        self.notify(f"[{self.name}]", "**Spider task find no targets~**")
-                        logger.error(f"爬取任务加载失败【TimeoutException】: {e.stacktrace}")
-                        break
-                    else:
-                        time.sleep(10)
+                    # If can not find next page button, this means we crawler all news of targets
+                    if not bs4source.find("li", string="下一页"):
+                        self.target_done = True
+                        self.notify(f"[{self.name}]", f"**{_}[Total-Pages:{self.current_page}] has finished~**")
 
-                self.notify(f"[{self.name}]", f"**{_}: {self.current_page}**")
+                    else:
+                        try:
+                            # save all current page items goto next page (here to reduce the frequency because i'm using my laptop)
+                            self.next()
+                            self.current_page += 1
+                        except TimeoutException as e:
+                            self.notify(f"[{self.name}]", "**Spider load pages timeout~**")
+                            logger.error(f"爬取任务加载失败【TimeoutException】: {e.stacktrace}")
+                            break
+
+                    # sleep time for not hug the CPU~
+                    time.sleep(5)
+
+            # reset the flag && page count
+            self.target_done = False
+            self.current_page = 1
+
+        # finished all target close browser
+        self.browser.quit()
