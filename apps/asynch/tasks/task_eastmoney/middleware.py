@@ -35,22 +35,29 @@ def middleware(context):
 
         if soup:
             # parse the body context which information we need to store.
-            news_title = soup.h1.string
-            news_post_time = soup.find("div", class_="time").string
-            if soup.find("div", class_="source data-source"):
-                news_post_source = soup.find("div", class_="source data-source").attrs.get("data-source")
-            else:
-                news_post_source = ""
-            news_content = soup.find("div", id="ContentBody").get_text()
+            try:
+                news_title = soup.h1.string
+                news_post_time = soup.find("div", class_="time").string
+                if soup.find("div", class_="source data-source"):
+                    news_post_source = soup.find("div", class_="source data-source").attrs.get("data-source")
+                else:
+                    news_post_source = ""
+                news_content = soup.find("div", id="ContentBody").get_text()
 
-            info = {
-                "type": page['doc_type'],
-                "link": page['target'],
-                "title": news_title,
-                "post_time": news_post_time,
-                "post_source": news_post_source,
-                "content": news_content,
-            }
+                info = {
+                    "type": page['doc_type'],
+                    "link": page['target'],
+                    "title": news_title,
+                    "post_time": news_post_time,
+                    "post_source": news_post_source,
+                    "content": news_content,
+                }
+
+                infos.append(info)
+            except Exception as e:
+                logger.warning(f"Decoder context of news[{page['target']}] failed: {e}")
+            else:
+                pass
 
             # 存放分词结果
             segments = []
@@ -92,7 +99,5 @@ def middleware(context):
             #     info["pipeline"] = _hanlp_pipeline(content)
             # info["segments"] = list(Counter(segments))
             # info["entities"] = entities
-
-            infos.append(info)
 
     return infos
