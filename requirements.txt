@@ -39,7 +39,7 @@ Markdown==3.2.2
 monotonic==1.5
 multidict==4.7.5
 mysql-connector-python
-numpy==1.18.5
+numpy==1.22.0
 oauthlib==3.1.0
 opt-einsum==3.2.1
 protobuf==3.12.2
