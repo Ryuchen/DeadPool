@@ -34,7 +34,7 @@ idna
 importlib-metadata==1.5.0
 Keras-Preprocessing==1.1.2
 kombu
-lxml==4.5.0
+lxml==4.9.1
 Markdown==3.2.2
 monotonic==1.5
 multidict==4.7.5
